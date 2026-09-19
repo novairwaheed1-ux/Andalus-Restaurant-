@@ -41,7 +41,7 @@ export default function CartDrawer({ isOpen, onClose, items, setItems }: CartDra
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 24, stiffness: 140, mass: 0.8 }}
-            className="fixed inset-x-0 bottom-0 top-12 bg-slate-50 rounded-t-[40px] z-[201] flex flex-col overflow-hidden"
+            className="fixed inset-x-0 bottom-0 top-12 max-w-[440px] mx-auto bg-slate-50 rounded-t-[40px] z-[201] flex flex-col overflow-hidden shadow-2xl"
             dir="rtl"
           >
             <div className="flex flex-col items-center pt-8 pb-4 px-6 bg-slate-50 z-10">

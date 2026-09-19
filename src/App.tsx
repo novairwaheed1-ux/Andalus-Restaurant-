@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { CATEGORIES, MENU_ITEMS } from './data/menuData';
 import type { MenuItem, CartItem } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Grid, Home, Heart, ShoppingBag, User } from 'lucide-react';
+import { Search, SlidersHorizontal, Plus, Grid, Home, Heart, ShoppingBag, User, MapPin, ChevronDown, Bell, Phone } from 'lucide-react';
 import MenuCard from './components/MenuCard';
 import DishDetailModal from './components/DishDetailModal';
 import CartDrawer from './components/CartDrawer';
@@ -11,6 +11,7 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [spinningItemId, setSpinningItemId] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   
@@ -23,11 +24,18 @@ export default function App() {
 
   const filteredItems = useMemo(() => {
     return MENU_ITEMS.filter((item) => {
-      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            item.description.toLowerCase().includes(searchQuery.toLowerCase());
       if (activeCategory === 'all') return matchesSearch;
       return item.category === activeCategory && matchesSearch;
     });
   }, [activeCategory, searchQuery]);
+
+  const handleItemClick = (item: MenuItem) => {
+    // Immediate responsive transition without lagging
+    setSpinningItemId(item.id);
+    setSelectedItem(item);
+  };
 
   const handleAddToCart = (item: CartItem, startX: number, startY: number) => {
     setCartItems(prev => {
@@ -54,110 +62,169 @@ export default function App() {
     setFlyEndCoords({ x: endX, y: endY });
     setIsFlying(true);
     
-    // Delay closing modal slightly so the animation can be seen starting from the modal
+    // Smooth, relaxed exit timing: allows the user to clearly see the flying animation before the modal closes
     setTimeout(() => {
       setSelectedItem(null);
-    }, 400);
+      setSpinningItemId(null);
+    }, 750);
   };
 
   const cartItemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-32" dir="rtl">
-      {/* Header */}
-      <header className="px-6 pt-12 pb-4">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex justify-center items-start selection:bg-[#FF5B2E]/20 relative overflow-x-hidden font-sans" dir="rtl">
+      
+      {/* Top 1/3 Harmonious Gradient: White -> Brand #FF5B2E -> Soft Pink #FFB6C1 (Zero-lag hardware composite for low-end & high-end devices) */}
+      <div 
+        className="absolute top-0 inset-x-0 h-80 sm:h-96 pointer-events-none z-0 overflow-hidden"
+        style={{
+          background: 'radial-gradient(circle at 85% 15%, rgba(255, 91, 46, 0.22) 0%, transparent 60%), radial-gradient(circle at 15% 35%, rgba(255, 182, 193, 0.4) 0%, transparent 65%), linear-gradient(180deg, #FFFFFF 0%, rgba(255, 91, 46, 0.12) 35%, rgba(255, 182, 193, 0.3) 70%, rgba(248, 250, 252, 0) 100%)',
+          willChange: 'transform',
+          transform: 'translateZ(0)'
+        }}
+      />
+
+      {/* Consistent Responsive Container (Mobile, iPad, Laptop maintain exact proportional beauty) */}
+      <div className="w-full max-w-[440px] md:max-w-[460px] min-h-screen relative flex flex-col z-10 pb-32">
         
-        {/* Delivery Info Location */}
-        <div className="flex flex-col gap-1 mb-6">
-          <span className="text-xs font-bold text-slate-400 tracking-wider">التوصيل إلى</span>
-          <div className="flex items-center gap-1.5">
-            <span className="font-bold text-slate-900 text-sm">ديروط - أول منزل أبو جبل</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="rotate-180"><path d="M6 9L12 15L18 9" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </div>
-        </div>
-
-        <h1 className="text-4xl text-slate-900 mt-2 mb-6 leading-tight">
-          <span className="font-extrabold text-slate-900 tracking-tight block mb-1">جعان؟ </span>
-          <span className="text-slate-400 font-medium">اطلب اللي نفسك فيه.</span>
-        </h1>
-
-        <div className="relative mb-6">
-          <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-slate-400" />
-          </div>
-          <input
-            type="text"
-            className="block w-full pr-11 pl-4 py-4 bg-white border border-slate-100 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FF5B2E] shadow-sm text-lg font-medium"
-            placeholder="ابحث في المنيو..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        {/* Categories */}
-        <div className="flex gap-6 overflow-x-auto no-scrollbar pb-4 -mx-6 px-6">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className="flex flex-col items-center gap-3 shrink-0"
-            >
-              <div className={`w-[72px] h-[72px] rounded-full flex items-center justify-center shadow-md transition-all ${
-                activeCategory === cat.id ? 'bg-[#1A1A1A] shadow-lg shadow-black/20' : 'bg-white border border-slate-100'
-              }`}>
-                {cat.icon === 'grid' ? (
-                  <Grid className={`w-8 h-8 ${activeCategory === cat.id ? 'text-white' : 'text-slate-800'}`} />
-                ) : (
-                  <div className="w-12 h-12 rounded-full overflow-hidden">
-                    <img referrerPolicy="no-referrer" src={cat.icon} alt={cat.name} className="w-full h-full object-cover p-2" />
-                  </div>
-                )}
+        {/* Header Section matching Video Frame 00:00 */}
+        <header className="px-5 pt-8 pb-3 relative z-10">
+          
+          {/* Delivery Location & Direct Call Bar */}
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md shadow-sm border border-slate-100 flex items-center justify-center text-[#FF5B2E]">
+                <MapPin className="w-5 h-5" />
               </div>
-              <span className={`text-sm font-semibold ${activeCategory === cat.id ? 'text-slate-900' : 'text-slate-500'}`}>
-                {cat.name}
-              </span>
-            </button>
-          ))}
-        </div>
-      </header>
+              <div>
+                <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">التوصيل إلى</div>
+                <div className="flex items-center gap-1 font-black text-sm text-slate-900">
+                  <span>ديروط - أول منزل أبو جبل</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                </div>
+              </div>
+            </div>
 
-      {/* Menu Grid */}
-      <main className="px-6">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-6">
-          {filteredItems.map(item => (
-            <MenuCard 
-              key={item.id} 
-              item={item} 
-              onClick={() => setSelectedItem(item)}
-              onAdd={(e) => {
-                const rect = (e.target as HTMLElement).getBoundingClientRect();
-                const startX = rect.left + rect.width / 2;
-                const startY = rect.top + rect.height / 2;
-                
-                const newItem: CartItem = {
-                  id: Date.now().toString(),
-                  menuItemId: item.id,
-                  name: item.name,
-                  image: item.image,
-                  sizeId: item.sizes[0].id,
-                  sizeName: item.sizes[0].name,
-                  price: item.sizes[0].price,
-                  quantity: 1,
-                  description: item.description
-                };
-                
-                handleAddToCart(newItem, startX, startY);
-              }}
+            <div className="flex items-center gap-2">
+              <a 
+                href="tel:01008141062" 
+                className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md shadow-sm border border-slate-100 flex items-center justify-center text-slate-800 hover:text-[#FF5B2E] transition-colors active:scale-95"
+                title="اتصال مباشر: 01008141062"
+              >
+                <Phone className="w-4 h-4" />
+              </a>
+              <button 
+                className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md shadow-sm border border-slate-100 flex items-center justify-center text-slate-800 hover:text-[#FF5B2E] transition-colors active:scale-95"
+                title="التنبيهات"
+              >
+                <Bell className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Headline from Video */}
+          <h1 className="text-[32px] sm:text-[34px] font-black text-slate-900 tracking-tight leading-tight mb-5">
+            جعان يا صحبي؟ <span className="text-[#FF5B2E]">اطلب واستمتع 🍕</span>
+          </h1>
+
+          {/* Search Bar */}
+          <div className="relative mb-6">
+            <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
+              <Search className="h-5 w-5" />
+            </div>
+            <input
+              type="text"
+              className="block w-full pr-11 pl-4 py-3.5 bg-white/95 backdrop-blur-md border border-slate-100 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FF5B2E] shadow-[0_2px_12px_rgba(0,0,0,0.03)] text-[15px] font-semibold"
+              placeholder="ابحث عن بيتزا، كريب، حواوشي..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
-          ))}
-        </div>
-      </main>
+          </div>
 
-      {/* Floating Bottom Nav */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[#1A1A1A] px-8 py-4 rounded-[40px] flex items-center justify-center gap-10 shadow-2xl z-[150]">
+          {/* Category Circles matching Video Frame 00:00 */}
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-5 px-5">
+            {CATEGORIES.map((cat) => {
+              const isActive = activeCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className="flex flex-col items-center gap-2.5 shrink-0 group active:scale-95 transition-transform"
+                >
+                  <div className={`w-[68px] h-[68px] rounded-full flex items-center justify-center transition-all ${
+                    isActive 
+                      ? 'bg-[#1A1A1A] text-white shadow-xl shadow-black/20 scale-105' 
+                      : 'bg-white/90 backdrop-blur-md border border-slate-100 text-slate-800 shadow-sm hover:shadow-md'
+                  }`}>
+                    {cat.icon === 'grid' ? (
+                      <Grid className={`w-7 h-7 ${isActive ? 'text-white' : 'text-slate-800'}`} />
+                    ) : (
+                      <div className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center">
+                        <img 
+                          referrerPolicy="no-referrer" 
+                          src={cat.icon} 
+                          alt={cat.name} 
+                          className="w-full h-full object-cover p-1.5" 
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <span className={`text-xs font-black tracking-tight transition-colors ${
+                    isActive ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'
+                  }`}>
+                    {cat.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </header>
+
+        {/* 2-Column Food Grid matching Video */}
+        <main className="px-5 relative z-10">
+          <div className="flex items-center justify-between mb-4 mt-2">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-400">
+              الأصناف المتوفرة ({filteredItems.length})
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3.5 sm:gap-4">
+            {filteredItems.map(item => (
+              <MenuCard 
+                key={item.id} 
+                item={item} 
+                isSpinning={spinningItemId === item.id}
+                onClick={() => handleItemClick(item)}
+                onAdd={(e) => {
+                  const rect = (e.target as HTMLElement).getBoundingClientRect();
+                  const startX = rect.left + rect.width / 2;
+                  const startY = rect.top + rect.height / 2;
+                  
+                  const newItem: CartItem = {
+                    id: Date.now().toString(),
+                    menuItemId: item.id,
+                    name: item.name,
+                    image: item.image,
+                    sizeId: item.sizes[0].id,
+                    sizeName: item.sizes[0].name,
+                    price: item.sizes[0].price,
+                    quantity: 1,
+                    description: item.description
+                  };
+                  
+                  handleAddToCart(newItem, startX, startY);
+                }}
+              />
+            ))}
+          </div>
+        </main>
+      </div>
+
+      {/* Floating Bottom Nav - Identical on Mobile, iPad, Laptop */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[380px] bg-[#1A1A1A] px-8 py-4 rounded-[40px] flex items-center justify-between shadow-2xl shadow-black/25 z-[150]">
         <button className="text-[#FF5B2E] transition-colors relative flex flex-col items-center">
           <Home className="w-6 h-6" />
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#FF5B2E] rounded-full"></div>
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#FF5B2E] rounded-full"></div>
         </button>
         <button className="text-slate-400 hover:text-white transition-colors">
           <Heart className="w-6 h-6" />
@@ -173,7 +240,7 @@ export default function App() {
           >
             <ShoppingBag className="w-6 h-6" />
             {cartItemCount > 0 && (
-              <span className="absolute -top-1 -right-2 bg-[#FF5B2E] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center scale-90">
+              <span className="absolute -top-1.5 -right-2 bg-[#FF5B2E] text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
                 {cartItemCount}
               </span>
             )}
@@ -189,7 +256,10 @@ export default function App() {
         {selectedItem && (
           <DishDetailModal 
             item={selectedItem} 
-            onClose={() => setSelectedItem(null)} 
+            onClose={() => {
+              setSelectedItem(null);
+              setSpinningItemId(null);
+            }} 
             onAdd={handleAddToCart}
           />
         )}
@@ -203,28 +273,29 @@ export default function App() {
         setItems={setCartItems}
       />
 
-      {/* Fly to Cart Animation - Enhanced Arcing & Scaling */}
+      {/* Fly to Cart Animation - Slower, relaxed and graceful arc trajectory */}
       <AnimatePresence>
         {isFlying && flyStartCoords && flyEndCoords && (
-          <motion.img referrerPolicy="no-referrer"
+          <motion.img 
+            referrerPolicy="no-referrer"
             initial={{ 
-              x: flyStartCoords.x - 80, 
-              y: flyStartCoords.y - 80, 
-              scale: 0.5, 
+              x: flyStartCoords.x - 65, 
+              y: flyStartCoords.y - 65, 
+              scale: 0.7, 
               opacity: 1,
               rotate: 0
             }}
             animate={{ 
-              x: [flyStartCoords.x - 80, flyStartCoords.x - 80, flyEndCoords.x - 80],
-              y: [flyStartCoords.y - 80, flyStartCoords.y - 150, flyEndCoords.y - 80], 
-              scale: [0.5, 1.1, 0.1], // Grows slightly then shrinks perfectly to cart size
+              x: [flyStartCoords.x - 65, flyStartCoords.x - 65, flyEndCoords.x - 65],
+              y: [flyStartCoords.y - 65, flyStartCoords.y - 130, flyEndCoords.y - 65], 
+              scale: [0.7, 1.05, 0.15],
               opacity: [1, 1, 1, 0], 
-              rotate: [0, 360, 1080] // Spin effect while falling
+              rotate: [0, 360, 720]
             }}
             transition={{
-              duration: 0.8,
-              times: [0, 0.4, 1], // The arc apex happens at 40% of the animation
-              ease: "easeInOut"
+              duration: 0.95,
+              times: [0, 0.45, 1],
+              ease: [0.22, 1, 0.36, 1]
             }}
             onAnimationComplete={() => {
               setIsFlying(false);
@@ -234,9 +305,9 @@ export default function App() {
               setTimeout(() => setIsCartBumping(false), 500);
             }}
             src={flyingImage}
-            className="fixed z-[250] w-40 h-40 object-cover drop-shadow-2xl pointer-events-none"
+            decoding="async"
+            className="fixed z-[250] w-36 h-36 object-cover drop-shadow-2xl pointer-events-none rounded-full will-change-transform"
             style={{ 
-              clipPath: 'circle(48% at 50% 50%)',
               top: 0,
               left: 0,
             }}

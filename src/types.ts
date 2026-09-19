@@ -1,3 +1,16 @@
+export interface Category {
+  id: string;
+  name: string;
+  icon: string;
+}
+
+export interface Topping {
+  id: string;
+  name: string;
+  price: number;
+  icon: string;
+}
+
 export interface MenuItem {
   id: string;
   name: string;
