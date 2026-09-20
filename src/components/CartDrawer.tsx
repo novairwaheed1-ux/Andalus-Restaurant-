@@ -8,9 +8,10 @@ interface CartDrawerProps {
   onClose: () => void;
   items: CartItem[];
   setItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
+  onCheckout: () => void;
 }
 
-export default function CartDrawer({ isOpen, onClose, items, setItems }: CartDrawerProps) {
+export default function CartDrawer({ isOpen, onClose, items, setItems, onCheckout }: CartDrawerProps) {
   const updateQuantity = (id: string, delta: number) => {
     setItems(prev => prev.map(item => {
       if (item.id === id) {
@@ -118,10 +119,12 @@ export default function CartDrawer({ isOpen, onClose, items, setItems }: CartDra
                 </div>
               </div>
               <button 
-                className="w-full bg-[#1A1A1A] text-white py-4 rounded-full font-bold text-lg disabled:opacity-50 disabled:bg-slate-300 shadow-xl shadow-black/10 active:scale-[0.98] transition-transform"
+                onClick={onCheckout}
+                className="w-full bg-[#FF5B2E] hover:bg-[#e0481d] text-white py-4 rounded-full font-black text-lg disabled:opacity-50 disabled:bg-slate-300 shadow-xl shadow-[#FF5B2E]/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 disabled={items.length === 0}
               >
-                تأكيد الطلب
+                <span>تأكيد الطلب</span>
+                <span className="text-sm font-normal bg-white/20 px-2.5 py-0.5 rounded-full">({total.toFixed(0)} ج.م)</span>
               </button>
             </div>
           </motion.div>

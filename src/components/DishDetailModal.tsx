@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronRight, Heart, Star, Minus, Plus, ShoppingBag, Check } from 'lucide-react';
+import { ChevronRight, Star, Minus, Plus, ShoppingBag, Check } from 'lucide-react';
 import type { MenuItem, SizeOption, CartItem } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TOPPINGS } from '../data/menuData';
@@ -16,7 +16,6 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
   const [quantity, setQuantity] = useState(1);
   const [imageScale, setImageScale] = useState(1);
   const [rotation, setRotation] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
   const [hasLanded, setHasLanded] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -110,7 +109,7 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
         transition={{ type: 'spring', damping: 28, stiffness: 320, mass: 0.65 }}
         className="bg-white rounded-t-[36px] sm:rounded-[36px] w-full max-w-[440px] max-h-[92vh] flex flex-col relative z-10 overflow-hidden shadow-2xl will-change-transform"
       >
-        {/* Top Floating Action Buttons (Back + Favorite) matching the video */}
+        {/* Top Action Bar (Back button) */}
         <div className="flex items-center justify-between px-6 pt-5 pb-2 relative z-20">
           <button 
             onClick={onClose} 
@@ -119,16 +118,7 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
           >
             <ChevronRight className="w-5 h-5" />
           </button>
-
-          <button 
-            onClick={() => setIsLiked(!isLiked)} 
-            className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm transition-all active:scale-90 ${
-              isLiked ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-            title="إضافة للمفضلة"
-          >
-            <Heart className={`w-5 h-5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-          </button>
+          <div className="text-xs font-bold text-slate-400">تفاصيل الوجبة</div>
         </div>
 
         {/* Scrollable Content */}

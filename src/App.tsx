@@ -2,10 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { CATEGORIES, MENU_ITEMS } from './data/menuData';
 import type { MenuItem, CartItem } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, SlidersHorizontal, Plus, Grid, Home, Heart, ShoppingBag, User, MapPin, ChevronDown, Bell, Phone } from 'lucide-react';
+import { Search, Plus, Grid, Home, Package, ShoppingBag, User, MapPin, ChevronDown, Bell, Phone, LogIn } from 'lucide-react';
 import MenuCard from './components/MenuCard';
 import DishDetailModal from './components/DishDetailModal';
 import CartDrawer from './components/CartDrawer';
+import LoginModal, { type UserProfile } from './components/LoginModal';
+import OrderModal from './components/OrderModal';
 
 export default function App() {
   const [activeCategory, setActiveCategory] = useState('all');
@@ -14,6 +16,13 @@ export default function App() {
   const [spinningItemId, setSpinningItemId] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  
+  // Login & Order Modals State - Login is mandatory every single time the user opens/visits the app
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+
+  // Login is mandatory every time the user enters
+  const [isLoginOpen, setIsLoginOpen] = useState(true);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   
   // Animation coordinates
   const [flyStartCoords, setFlyStartCoords] = useState<{x: number, y: number} | null>(null);
@@ -74,11 +83,23 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex justify-center items-start selection:bg-[#FF5B2E]/20 relative overflow-x-hidden font-sans" dir="rtl">
       
-      {/* Top 1/3 Harmonious Gradient: White -> Brand #FF5B2E -> Soft Pink #FFB6C1 (Zero-lag hardware composite for low-end & high-end devices) */}
+      {/* 
+        الجزء الثالث من الموقع (العلوي) باللون الأحمر الداكن المركز ويتدرج بنعومة من تحت
+      */}
       <div 
-        className="absolute top-0 inset-x-0 h-80 sm:h-96 pointer-events-none z-0 overflow-hidden"
+        className="absolute top-0 inset-x-0 h-96 sm:h-[420px] pointer-events-none z-0 overflow-hidden"
         style={{
-          background: 'radial-gradient(circle at 85% 15%, rgba(255, 91, 46, 0.22) 0%, transparent 60%), radial-gradient(circle at 15% 35%, rgba(255, 182, 193, 0.4) 0%, transparent 65%), linear-gradient(180deg, #FFFFFF 0%, rgba(255, 91, 46, 0.12) 35%, rgba(255, 182, 193, 0.3) 70%, rgba(248, 250, 252, 0) 100%)',
+          background: 'linear-gradient(180deg, rgba(185, 28, 28, 0.65) 0%, rgba(153, 27, 27, 0.45) 45%, rgba(127, 29, 29, 0.22) 75%, rgba(248, 250, 252, 0) 100%)',
+          willChange: 'transform',
+          transform: 'translateZ(0)'
+        }}
+      />
+      
+      {/* التدرج السفلي الناعم المتناسق */}
+      <div 
+        className="absolute inset-x-0 bottom-0 h-80 sm:h-96 pointer-events-none z-0 overflow-hidden"
+        style={{
+          background: 'linear-gradient(0deg, rgba(220, 38, 38, 0.22) 0%, rgba(185, 28, 28, 0.12) 50%, rgba(248, 250, 252, 0) 100%)',
           willChange: 'transform',
           transform: 'translateZ(0)'
         }}
@@ -113,11 +134,29 @@ export default function App() {
               >
                 <Phone className="w-4 h-4" />
               </a>
+
+              {/* User Avatar / Login Button */}
               <button 
-                className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md shadow-sm border border-slate-100 flex items-center justify-center text-slate-800 hover:text-[#FF5B2E] transition-colors active:scale-95"
-                title="التنبيهات"
+                onClick={() => setIsLoginOpen(true)}
+                className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden active:scale-95 transition-transform"
+                title={currentUser?.isLoggedIn ? `مرحباً ${currentUser.name}` : "تسجيل الدخول"}
               >
-                <Bell className="w-4 h-4" />
+                {currentUser?.isLoggedIn ? (
+                  currentUser.avatar ? (
+                    <img 
+                      referrerPolicy="no-referrer"
+                      src={currentUser.avatar}
+                      alt={currentUser.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#FF3B30] text-white flex items-center justify-center font-black text-sm shadow-inner">
+                      {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                  )
+                ) : (
+                  <User className="w-4 h-4 text-slate-700" />
+                )}
               </button>
             </div>
           </div>
@@ -222,16 +261,31 @@ export default function App() {
 
       {/* Floating Bottom Nav - Identical on Mobile, iPad, Laptop */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[380px] bg-[#1A1A1A] px-8 py-4 rounded-[40px] flex items-center justify-between shadow-2xl shadow-black/25 z-[150]">
-        <button className="text-[#FF5B2E] transition-colors relative flex flex-col items-center">
+        <button 
+          onClick={() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="text-[#FF5B2E] transition-colors relative flex flex-col items-center"
+          title="الرئيسية"
+        >
           <Home className="w-6 h-6" />
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#FF5B2E] rounded-full"></div>
         </button>
-        <button className="text-slate-400 hover:text-white transition-colors">
-          <Heart className="w-6 h-6" />
-        </button>
+
+        {/* Orders & Live Tracking Button (Replacing Heart) */}
         <button 
-          className="text-slate-400 hover:text-white transition-colors relative cart-icon-target"
+          onClick={() => setIsOrderModalOpen(true)}
+          className="text-slate-400 hover:text-white transition-colors relative active:scale-90"
+          title="تتبع الطلب والأوردرات"
+        >
+          <Package className="w-6 h-6" />
+        </button>
+
+        {/* Cart Button */}
+        <button 
+          className="text-slate-400 hover:text-white transition-colors relative cart-icon-target active:scale-90"
           onClick={() => setIsCartOpen(true)}
+          title="سلة المشتريات"
         >
           <motion.div
             animate={isCartBumping ? { scale: [1, 1.25, 1], x: [0, -4, 4, -4, 4, 0], rotate: [0, -15, 15, -15, 15, 0] } : { scale: 1, x: 0, rotate: 0 }}
@@ -246,8 +300,32 @@ export default function App() {
             )}
           </motion.div>
         </button>
-        <button className="text-slate-400 hover:text-white transition-colors">
-          <User className="w-6 h-6" />
+
+        {/* User Profile & Login Button */}
+        <button 
+          onClick={() => setIsLoginOpen(true)}
+          className="text-slate-400 hover:text-white transition-colors relative active:scale-90"
+          title={currentUser?.isLoggedIn ? `حسابي (${currentUser.name})` : "تسجيل الدخول"}
+        >
+          {currentUser?.isLoggedIn ? (
+            <div className="relative w-6 h-6 rounded-full overflow-hidden border border-[#FF5B2E]">
+              {currentUser.avatar ? (
+                <img 
+                  referrerPolicy="no-referrer"
+                  src={currentUser.avatar} 
+                  alt={currentUser.name} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-[#FF3B30] text-white flex items-center justify-center font-bold text-[10px]">
+                  {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+              )}
+              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border border-black" />
+            </div>
+          ) : (
+            <User className="w-6 h-6" />
+          )}
         </button>
       </div>
 
@@ -265,12 +343,47 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Cart Drawer */}
+      {/* Cart Drawer with onCheckout handler for 'يقين الاوردر' */}
       <CartDrawer 
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         items={cartItems}
         setItems={setCartItems}
+        onCheckout={() => {
+          setIsCartOpen(false);
+          setIsOrderModalOpen(true);
+        }}
+      />
+
+      {/* Login Modal Identical to Video - Serves as mandatory gate on initial entry until logged in */}
+      <LoginModal 
+        isOpen={isLoginOpen || !currentUser}
+        isGate={!currentUser}
+        onClose={() => {
+          if (currentUser) {
+            setIsLoginOpen(false);
+          }
+        }}
+        currentUser={currentUser}
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          setIsLoginOpen(false);
+        }}
+        onLogout={() => {
+          setCurrentUser(null);
+          setIsLoginOpen(true);
+        }}
+      />
+
+      {/* Order Confirmation & Live Tracking Modal for 'يقين الاوردر' */}
+      <OrderModal 
+        isOpen={isOrderModalOpen}
+        onClose={() => setIsOrderModalOpen(false)}
+        items={cartItems}
+        currentUser={currentUser}
+        onOrderCompleted={() => {
+          setCartItems([]);
+        }}
       />
 
       {/* Fly to Cart Animation - Slower, relaxed and graceful arc trajectory */}
