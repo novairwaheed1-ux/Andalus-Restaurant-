@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { CATEGORIES, MENU_ITEMS } from './data/menuData';
 import type { MenuItem, CartItem } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Grid, Home, Package, ShoppingBag, User, MapPin, ChevronDown, Bell, Phone, LogIn } from 'lucide-react';
+import { Search, Plus, Grid, Home, Package, ShoppingBag, User, MapPin, ChevronDown, Bell, Phone, LogIn, ChevronDown as MoreIcon } from 'lucide-react';
 import MenuCard from './components/MenuCard';
 import DishDetailModal from './components/DishDetailModal';
 import CartDrawer from './components/CartDrawer';
@@ -16,12 +16,56 @@ export default function App() {
   const [spinningItemId, setSpinningItemId] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(24);
   
-  // Login & Order Modals State - Login is mandatory every single time the user opens/visits the app
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  // Reset pagination when changing filters
+  useEffect(() => {
+    setVisibleCount(24);
+  }, [activeCategory, searchQuery]);
+  
+  // Login & Order Modals State - Persistent login so the user is never kicked out
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    try {
+      const saved = localStorage.getItem('andalus_current_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.isLoggedIn) return parsed;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return null;
+  });
 
-  // Login is mandatory every time the user enters
-  const [isLoginOpen, setIsLoginOpen] = useState(true);
+  // Login is open on initial entry if not logged in
+  const [isLoginOpen, setIsLoginOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem('andalus_current_user');
+      return !saved;
+    } catch {
+      return true;
+    }
+  });
+
+  const handleLoginSuccess = useCallback((user: UserProfile) => {
+    setCurrentUser(user);
+    try {
+      localStorage.setItem('andalus_current_user', JSON.stringify(user));
+    } catch (e) {
+      console.error(e);
+    }
+    setIsLoginOpen(false);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('andalus_current_user');
+    } catch (e) {
+      console.error(e);
+    }
+    setIsLoginOpen(true);
+  }, []);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   
   // Animation coordinates
@@ -40,13 +84,17 @@ export default function App() {
     });
   }, [activeCategory, searchQuery]);
 
-  const handleItemClick = (item: MenuItem) => {
+  const displayedItems = useMemo(() => {
+    return filteredItems.slice(0, visibleCount);
+  }, [filteredItems, visibleCount]);
+
+  const handleItemClick = useCallback((item: MenuItem) => {
     // Immediate responsive transition without lagging
     setSpinningItemId(item.id);
     setSelectedItem(item);
-  };
+  }, []);
 
-  const handleAddToCart = (item: CartItem, startX: number, startY: number) => {
+  const handleAddToCart = useCallback((item: CartItem, startX: number, startY: number) => {
     setCartItems(prev => {
       const existing = prev.find(i => i.menuItemId === item.menuItemId && i.sizeId === item.sizeId);
       if (existing) {
@@ -76,7 +124,7 @@ export default function App() {
       setSelectedItem(null);
       setSpinningItemId(null);
     }, 750);
-  };
+  }, []);
 
   const cartItemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -228,7 +276,7 @@ export default function App() {
           </div>
 
           <div className="grid grid-cols-2 gap-3.5 sm:gap-4">
-            {filteredItems.map(item => (
+            {displayedItems.map(item => (
               <MenuCard 
                 key={item.id} 
                 item={item} 
@@ -256,6 +304,19 @@ export default function App() {
               />
             ))}
           </div>
+
+          {/* Progressive Load More (Keeps app feather-light on any device) */}
+          {visibleCount < filteredItems.length && (
+            <div className="mt-6 mb-2 flex justify-center">
+              <button
+                onClick={() => setVisibleCount(prev => prev + 24)}
+                className="px-6 py-3 bg-white/95 hover:bg-white text-slate-800 font-black text-xs rounded-2xl shadow-sm border border-slate-200/80 active:scale-95 transition-all flex items-center gap-2"
+              >
+                <span>عرض المزيد ({filteredItems.length - visibleCount} صنف إضافي)</span>
+                <MoreIcon className="w-4 h-4 text-[#FF5B2E]" />
+              </button>
+            </div>
+          )}
         </main>
       </div>
 
@@ -355,9 +416,9 @@ export default function App() {
         }}
       />
 
-      {/* Login Modal Identical to Video - Serves as mandatory gate on initial entry until logged in */}
+      {/* Login & Profile Modal - Smooth gate on entry, never kicks out active user */}
       <LoginModal 
-        isOpen={isLoginOpen || !currentUser}
+        isOpen={isLoginOpen}
         isGate={!currentUser}
         onClose={() => {
           if (currentUser) {
@@ -365,14 +426,8 @@ export default function App() {
           }
         }}
         currentUser={currentUser}
-        onLoginSuccess={(user) => {
-          setCurrentUser(user);
-          setIsLoginOpen(false);
-        }}
-        onLogout={() => {
-          setCurrentUser(null);
-          setIsLoginOpen(true);
-        }}
+        onLoginSuccess={handleLoginSuccess}
+        onLogout={handleLogout}
       />
 
       {/* Order Confirmation & Live Tracking Modal for 'يقين الاوردر' */}

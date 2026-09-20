@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Eye, EyeOff, AlertCircle, Check, Loader2, 
   ChevronRight, ArrowLeft, Lock, UserPlus, X, ShieldCheck,
-  Sparkles
+  Sparkles, LogOut, User
 } from 'lucide-react';
 
 export interface UserProfile {
@@ -127,33 +127,33 @@ export default function LoginModal({
     }
 
     if (isError) {
-      // 1. Text disappears, two glowing red balls enter and race towards center
+      // 1. Text instantly disappears, two glowing red balls race in at hypersonic speed
       setBtnAnimState('red-approaching');
-      setShakeKey(prev => prev + 1);
 
-      // 2. Rapid merge into energetic collision + Red 'X' + Shockwave
+      // 2. High-speed collision (200ms) -> Violent Shake + Red 'X' + 'Failed' + Sparks
       setTimeout(() => {
         setBtnAnimState('red-merged');
+        setShakeKey(prev => prev + 1);
         setErrorMessage(errText);
-      }, 380);
+      }, 200);
 
-      // 3. Smoothly restore word "Login" after user sees error
+      // 3. Smoothly restore word "Login" after showing the Failed state
       setTimeout(() => {
         setBtnAnimState('idle');
-      }, 2100);
+      }, 1600);
       return;
     }
 
     // SUCCESS FLOW:
-    // 1. Text disappears, two glowing green balls enter and race towards center
+    // 1. Text disappears, two glowing green balls race in at lightning speed
     setBtnAnimState('green-approaching');
 
-    // 2. Rapid merge into energetic fusion + Green Checkmark + Shockwave
+    // 2. High-speed collision (200ms) -> Green Checkmark + 'Success!' + Sparks + Shockwave
     setTimeout(() => {
       setBtnAnimState('green-merged');
-    }, 380);
+    }, 200);
 
-    // 3. Proceed to login success
+    // 3. Rapid transition directly into the app (smooth and snappy)
     setTimeout(() => {
       const usernamePart = trimmedEmail.split('@')[0];
       const formattedName = usernamePart.charAt(0).toUpperCase() + usernamePart.slice(1);
@@ -169,8 +169,7 @@ export default function LoginModal({
       } catch {}
 
       onLoginSuccess(userData);
-      if (onClose) onClose();
-    }, 1150);
+    }, 650);
   };
 
   const handleSelectAccount = (account: GoogleAccountOption) => {
@@ -211,10 +210,10 @@ export default function LoginModal({
       setTimeout(() => {
         setGoogleBtnAnimState('red-merged');
         setGoogleError('يرجى إدخال كلمة المرور الخاصة بحسابك للدخول');
-      }, 380);
+      }, 200);
       setTimeout(() => {
         setGoogleBtnAnimState('idle');
-      }, 2100);
+      }, 1600);
       return;
     }
 
@@ -223,10 +222,10 @@ export default function LoginModal({
       setTimeout(() => {
         setGoogleBtnAnimState('red-merged');
         setGoogleError('كلمة المرور يجب أن تتكون من 6 أحرف أو أرقام على الأقل');
-      }, 380);
+      }, 200);
       setTimeout(() => {
         setGoogleBtnAnimState('idle');
-      }, 2100);
+      }, 1600);
       return;
     }
 
@@ -234,7 +233,7 @@ export default function LoginModal({
     setGoogleBtnAnimState('green-approaching');
     setTimeout(() => {
       setGoogleBtnAnimState('green-merged');
-    }, 380);
+    }, 200);
 
     setTimeout(() => {
       const loggedInEmail = selectedGoogleAccount?.email || 'novairwaheed1@gmail.com';
@@ -252,8 +251,7 @@ export default function LoginModal({
 
       setShowGooglePicker(false);
       onLoginSuccess(userData);
-      if (onClose) onClose();
-    }, 1150);
+    }, 650);
   };
 
   return (
@@ -262,28 +260,15 @@ export default function LoginModal({
         className="fixed inset-0 z-[300] w-full h-full bg-[#000000] text-white flex flex-col justify-between overflow-hidden select-none font-sans"
         dir="ltr"
       >
-        {/* Ambient Atmospheric Light Spheres (Animations 1 & 2) */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <motion.div 
-            animate={{ 
-              scale: [1, 1.25, 1],
-              opacity: [0.12, 0.28, 0.12],
-              x: [-15, 20, -15],
-              y: [-15, 15, -15]
-            }}
-            transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute -top-32 -left-20 w-[450px] h-[450px] bg-gradient-to-br from-amber-600/35 via-orange-900/20 to-transparent rounded-full blur-[150px]" 
-          />
-          <motion.div 
-            animate={{ 
-              scale: [1.2, 0.95, 1.2],
-              opacity: [0.10, 0.22, 0.10],
-              x: [20, -15, 20],
-              y: [15, -20, 15]
-            }}
-            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute -bottom-36 -right-24 w-[480px] h-[480px] bg-gradient-to-tl from-slate-700/25 via-neutral-900/40 to-transparent rounded-full blur-[160px]" 
-          />
+        {/* Ambient Atmospheric Glow (Zero CPU/GPU Overhead) */}
+        <div 
+          className="absolute inset-0 pointer-events-none transform-gpu"
+          style={{
+            background: 'radial-gradient(circle at 10% 10%, rgba(217, 119, 6, 0.16) 0%, transparent 50%), radial-gradient(circle at 90% 90%, rgba(51, 65, 85, 0.20) 0%, transparent 55%)',
+            willChange: 'transform',
+            transform: 'translateZ(0)'
+          }}
+        >
           {/* Constellation particle dust (Animation 3) */}
           <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:28px_28px] opacity-[0.03]" />
         </div>
@@ -419,6 +404,49 @@ export default function LoginModal({
           {/* White Card Body with Staggered Cascading Elements (Animations 13 to 38) */}
           <div className="w-full bg-[#fafafa] text-slate-900 px-7 sm:px-9 pb-8 sm:pb-10 pt-2 shadow-[0_-25px_60px_rgba(0,0,0,0.45)]">
             
+            {/* If user is already logged in, show their luxury profile card instead of login form */}
+            {currentUser?.isLoggedIn ? (
+              <div className="py-2 text-center" dir="rtl">
+                <div className="w-18 h-18 mx-auto rounded-full bg-gradient-to-tr from-amber-500 via-orange-500 to-[#FF5B2E] text-white flex items-center justify-center text-3xl font-black shadow-xl shadow-orange-500/25 mb-3 border-4 border-white">
+                  {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-1">
+                  أهلاً بك، {currentUser.name} 👋
+                </h2>
+                
+                <p className="text-xs text-slate-500 font-medium mb-4" dir="ltr">
+                  {currentUser.email}
+                </p>
+
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl p-3 mb-6 flex items-center justify-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>حسابك نشط ومحفوظ في مطعم الأندلس</span>
+                </div>
+
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="w-full h-13 bg-slate-900 hover:bg-black text-white font-bold rounded-full text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>متابعة تصفح قائمة الطعام والطلب 🍕</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onLogout) onLogout();
+                    }}
+                    className="w-full h-12 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-full text-xs border border-red-200/80 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>تسجيل الخروج من الحساب</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
             {/* Form Title & Active Indicator (Animations 13 & 14) */}
             <div className="mb-5 flex items-center justify-between">
               <div>
@@ -473,12 +501,16 @@ export default function LoginModal({
               )}
             </AnimatePresence>
 
-            {/* Form with Physics Shake on Error (Animation 17) */}
+            {/* Form with Violent Physics Shake on Error (High-Intensity Shock Tremor) */}
             <motion.form 
               key={shakeKey}
               onSubmit={handleLoginSubmit} 
-              animate={shakeKey > 0 ? { x: [-9, 9, -7, 7, -3, 3, 0] } : {}}
-              transition={{ duration: 0.45 }}
+              animate={shakeKey > 0 ? { 
+                x: [-24, 24, -20, 20, -14, 14, -8, 8, -3, 3, 0],
+                y: [-5, 5, -3, 3, 0],
+                rotate: [-1.8, 1.8, -1.2, 1.2, 0]
+              } : {}}
+              transition={{ duration: 0.48, ease: 'easeInOut' }}
               className="space-y-4"
             >
               {/* 1. Email Field with Focus Bloom & Lift (Animations 18, 19, 20) */}
@@ -600,154 +632,216 @@ export default function LoginModal({
                   )}
 
                   <AnimatePresence mode="wait">
-                    {/* STATE 1: IDLE - Plain Text */}
+                    {/* STATE 1: IDLE - Clean Text, never shows success until user clicks Login */}
                     {btnAnimState === 'idle' && (
                       <motion.span
                         key="btn-label-idle"
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.5, filter: 'blur(6px)' }}
-                        transition={{ duration: 0.22 }}
+                        exit={{ opacity: 0, scale: 0.4, filter: 'blur(8px)' }}
+                        transition={{ duration: 0.18 }}
                         className="tracking-wide font-bold"
                       >
                         {isSignUpMode ? 'Sign Up' : 'Login'}
                       </motion.span>
                     )}
 
-                    {/* STATE 2: SUCCESS - Two Glowing Green Balls Approaching Each Other */}
+                    {/* STATE 2: SUCCESS - Two Glowing Green Balls Rushing from Edges to Center at Hypersonic Speed */}
                     {btnAnimState === 'green-approaching' && (
                       <motion.div
                         key="green-approaching"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="relative flex items-center justify-center w-36 h-full"
+                        className="relative flex items-center justify-center w-full h-full"
                       >
-                        {/* Left Green Ball */}
+                        {/* Left Green Orb with Hypersonic Plasma Tail */}
                         <motion.div
-                          initial={{ x: -48, scale: 0.4, opacity: 0.2 }}
-                          animate={{ x: 0, scale: 1, opacity: 1 }}
-                          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                          className="absolute w-5 h-5 rounded-full bg-gradient-to-tr from-emerald-500 via-emerald-300 to-green-100 shadow-[0_0_18px_#10B981,0_0_36px_#059669]"
+                          initial={{ x: -70, scale: 0.4, opacity: 0.4 }}
+                          animate={{ x: 0, scale: 1.1, opacity: 1 }}
+                          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                          className="absolute w-5 h-5 rounded-full bg-gradient-to-r from-emerald-400 via-emerald-300 to-green-100 shadow-[0_0_20px_#10B981,0_0_40px_#059669]"
                         >
-                          <div className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-white opacity-90 blur-[0.5px]" />
+                          {/* Light comet tail */}
+                          <div className="absolute top-1/2 -left-4 -translate-y-1/2 w-5 h-2 bg-gradient-to-l from-emerald-400 to-transparent blur-[1px] rounded-full" />
+                          <div className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-white opacity-95" />
                         </motion.div>
 
-                        {/* Right Green Ball */}
+                        {/* Right Green Orb with Hypersonic Plasma Tail */}
                         <motion.div
-                          initial={{ x: 48, scale: 0.4, opacity: 0.2 }}
-                          animate={{ x: 0, scale: 1, opacity: 1 }}
-                          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                          className="absolute w-5 h-5 rounded-full bg-gradient-to-tr from-emerald-500 via-emerald-300 to-green-100 shadow-[0_0_18px_#10B981,0_0_36px_#059669]"
+                          initial={{ x: 70, scale: 0.4, opacity: 0.4 }}
+                          animate={{ x: 0, scale: 1.1, opacity: 1 }}
+                          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                          className="absolute w-5 h-5 rounded-full bg-gradient-to-l from-emerald-400 via-emerald-300 to-green-100 shadow-[0_0_20px_#10B981,0_0_40px_#059669]"
                         >
-                          <div className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-white opacity-90 blur-[0.5px]" />
+                          {/* Light comet tail */}
+                          <div className="absolute top-1/2 -right-4 -translate-y-1/2 w-5 h-2 bg-gradient-to-r from-emerald-400 to-transparent blur-[1px] rounded-full" />
+                          <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-white opacity-95" />
                         </motion.div>
                       </motion.div>
                     )}
 
-                    {/* STATE 3: SUCCESS - Merged Explosion into Glowing Checkmark */}
+                    {/* STATE 3: SUCCESS - Fusion Explosion, 8-Direction Spark Burst & Green Checkmark */}
                     {btnAnimState === 'green-merged' && (
                       <motion.div
                         key="green-merged"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="relative flex items-center justify-center gap-2.5"
+                        className="relative flex items-center justify-center gap-3"
                       >
-                        {/* Shockwave expanding from fusion point */}
+                        {/* Expanding Shockwave Ring 1 */}
                         <motion.div
-                          initial={{ scale: 0.2, opacity: 1 }}
-                          animate={{ scale: 3.2, opacity: 0 }}
-                          transition={{ duration: 0.55, ease: 'easeOut' }}
-                          className="absolute w-8 h-8 rounded-full border-2 border-emerald-400 shadow-[0_0_25px_#10B981] pointer-events-none"
+                          initial={{ scale: 0.1, opacity: 1 }}
+                          animate={{ scale: 4.2, opacity: 0 }}
+                          transition={{ duration: 0.45, ease: 'easeOut' }}
+                          className="absolute w-7 h-7 rounded-full border-2 border-emerald-400 shadow-[0_0_30px_#10B981] pointer-events-none"
                         />
 
-                        {/* Core Checkmark Emblem with Spring Bounce */}
+                        {/* Expanding Shockwave Ring 2 */}
                         <motion.div
-                          initial={{ scale: 0, rotate: -40 }}
-                          animate={{ scale: [0, 1.35, 1], rotate: 0 }}
-                          transition={{ type: 'spring', stiffness: 500, damping: 16 }}
-                          className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-[0_0_24px_#10B981,0_0_40px_#059669] relative z-10"
+                          initial={{ scale: 0.1, opacity: 0.8 }}
+                          animate={{ scale: 2.8, opacity: 0 }}
+                          transition={{ duration: 0.35, ease: 'easeOut', delay: 0.05 }}
+                          className="absolute w-7 h-7 rounded-full border border-green-200 blur-[1px] pointer-events-none"
+                        />
+
+                        {/* 8-Direction Flying Energy Sparks */}
+                        {[0, 45, 90, 135, 180, 225, 270, 315].map((deg, idx) => {
+                          const rad = (deg * Math.PI) / 180;
+                          const dist = 32;
+                          return (
+                            <motion.div
+                              key={`green-spark-${idx}`}
+                              initial={{ x: 0, y: 0, scale: 1.2, opacity: 1 }}
+                              animate={{ 
+                                x: Math.cos(rad) * dist, 
+                                y: Math.sin(rad) * dist, 
+                                scale: 0, 
+                                opacity: 0 
+                              }}
+                              transition={{ duration: 0.38, ease: 'easeOut' }}
+                              className="absolute w-1.5 h-1.5 rounded-full bg-emerald-300 shadow-[0_0_10px_#34D399]"
+                            />
+                          );
+                        })}
+
+                        {/* Core Checkmark Emblem with High-Tension Spring Pop */}
+                        <motion.div
+                          initial={{ scale: 0, rotate: -45 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 14, bounce: 0.5 }}
+                          className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-[0_0_25px_#10B981,0_0_45px_#059669] relative z-10"
                         >
                           <Check className="w-5 h-5 stroke-[3.5]" />
                         </motion.div>
 
                         <motion.span
-                          initial={{ opacity: 0, x: 8 }}
+                          initial={{ opacity: 0, x: 10 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.1, duration: 0.25 }}
-                          className="text-emerald-400 font-extrabold text-base tracking-wide"
+                          transition={{ delay: 0.08, duration: 0.2 }}
+                          className="text-emerald-300 font-black text-base tracking-wider uppercase drop-shadow-[0_0_10px_rgba(16,185,129,0.7)]"
                         >
                           Success!
                         </motion.span>
                       </motion.div>
                     )}
 
-                    {/* STATE 4: ERROR - Two Glowing Red Balls Colliding */}
+                    {/* STATE 4: ERROR - Two Glowing Red Balls Rushing from Edges to Center at Hypersonic Speed */}
                     {btnAnimState === 'red-approaching' && (
                       <motion.div
                         key="red-approaching"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="relative flex items-center justify-center w-36 h-full"
+                        className="relative flex items-center justify-center w-full h-full"
                       >
-                        {/* Left Red Ball */}
+                        {/* Left Red Orb with Fiery Comet Tail */}
                         <motion.div
-                          initial={{ x: -48, scale: 0.4, opacity: 0.2 }}
-                          animate={{ x: 0, scale: 1, opacity: 1 }}
-                          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                          className="absolute w-5 h-5 rounded-full bg-gradient-to-tr from-red-600 via-rose-400 to-rose-100 shadow-[0_0_18px_#EF4444,0_0_36px_#DC2626]"
+                          initial={{ x: -70, scale: 0.4, opacity: 0.4 }}
+                          animate={{ x: 0, scale: 1.1, opacity: 1 }}
+                          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                          className="absolute w-5 h-5 rounded-full bg-gradient-to-r from-red-500 via-rose-400 to-red-100 shadow-[0_0_20px_#EF4444,0_0_40px_#DC2626]"
                         >
-                          <div className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-white opacity-90 blur-[0.5px]" />
+                          <div className="absolute top-1/2 -left-4 -translate-y-1/2 w-5 h-2 bg-gradient-to-l from-red-500 to-transparent blur-[1px] rounded-full" />
+                          <div className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-white opacity-95" />
                         </motion.div>
 
-                        {/* Right Red Ball */}
+                        {/* Right Red Orb with Fiery Comet Tail */}
                         <motion.div
-                          initial={{ x: 48, scale: 0.4, opacity: 0.2 }}
-                          animate={{ x: 0, scale: 1, opacity: 1 }}
-                          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                          className="absolute w-5 h-5 rounded-full bg-gradient-to-tr from-red-600 via-rose-400 to-rose-100 shadow-[0_0_18px_#EF4444,0_0_36px_#DC2626]"
+                          initial={{ x: 70, scale: 0.4, opacity: 0.4 }}
+                          animate={{ x: 0, scale: 1.1, opacity: 1 }}
+                          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                          className="absolute w-5 h-5 rounded-full bg-gradient-to-l from-red-500 via-rose-400 to-red-100 shadow-[0_0_20px_#EF4444,0_0_40px_#DC2626]"
                         >
-                          <div className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-white opacity-90 blur-[0.5px]" />
+                          <div className="absolute top-1/2 -right-4 -translate-y-1/2 w-5 h-2 bg-gradient-to-r from-red-500 to-transparent blur-[1px] rounded-full" />
+                          <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-white opacity-95" />
                         </motion.div>
                       </motion.div>
                     )}
 
-                    {/* STATE 5: ERROR - Collision Burst into Red 'X' Error Mark */}
+                    {/* STATE 5: ERROR - Violent Collision, 8-Direction Fiery Sparks, Red 'X' & 'Failed' */}
                     {btnAnimState === 'red-merged' && (
                       <motion.div
                         key="red-merged"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="relative flex items-center justify-center gap-2.5"
+                        className="relative flex items-center justify-center gap-3"
                       >
-                        {/* Red Shockwave */}
+                        {/* Expanding Fiery Shockwave Ring 1 */}
                         <motion.div
-                          initial={{ scale: 0.2, opacity: 1 }}
-                          animate={{ scale: 3.2, opacity: 0 }}
-                          transition={{ duration: 0.55, ease: 'easeOut' }}
-                          className="absolute w-8 h-8 rounded-full border-2 border-red-500 shadow-[0_0_25px_#EF4444] pointer-events-none"
+                          initial={{ scale: 0.1, opacity: 1 }}
+                          animate={{ scale: 4.2, opacity: 0 }}
+                          transition={{ duration: 0.45, ease: 'easeOut' }}
+                          className="absolute w-7 h-7 rounded-full border-2 border-red-500 shadow-[0_0_30px_#EF4444] pointer-events-none"
                         />
 
-                        {/* Core X Emblem with Spring Bounce */}
+                        {/* Expanding Shockwave Ring 2 */}
                         <motion.div
-                          initial={{ scale: 0, rotate: 40 }}
-                          animate={{ scale: [0, 1.35, 1], rotate: 0 }}
-                          transition={{ type: 'spring', stiffness: 500, damping: 16 }}
-                          className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white shadow-[0_0_24px_#EF4444,0_0_40px_#DC2626] relative z-10"
+                          initial={{ scale: 0.1, opacity: 0.8 }}
+                          animate={{ scale: 2.8, opacity: 0 }}
+                          transition={{ duration: 0.35, ease: 'easeOut', delay: 0.05 }}
+                          className="absolute w-7 h-7 rounded-full border border-rose-300 blur-[1px] pointer-events-none"
+                        />
+
+                        {/* 8-Direction Fiery Sparks */}
+                        {[0, 45, 90, 135, 180, 225, 270, 315].map((deg, idx) => {
+                          const rad = (deg * Math.PI) / 180;
+                          const dist = 32;
+                          return (
+                            <motion.div
+                              key={`red-spark-${idx}`}
+                              initial={{ x: 0, y: 0, scale: 1.2, opacity: 1 }}
+                              animate={{ 
+                                x: Math.cos(rad) * dist, 
+                                y: Math.sin(rad) * dist, 
+                                scale: 0, 
+                                opacity: 0 
+                              }}
+                              transition={{ duration: 0.38, ease: 'easeOut' }}
+                              className="absolute w-1.5 h-1.5 rounded-full bg-rose-400 shadow-[0_0_10px_#F43F5E]"
+                            />
+                          );
+                        })}
+
+                        {/* Core X Emblem with Spring Pop & Counter-Rotation */}
+                        <motion.div
+                          initial={{ scale: 0, rotate: 45 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 14, bounce: 0.5 }}
+                          className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white shadow-[0_0_25px_#EF4444,0_0_45px_#DC2626] relative z-10"
                         >
                           <X className="w-5 h-5 stroke-[3.5]" />
                         </motion.div>
 
                         <motion.span
-                          initial={{ opacity: 0, x: 8 }}
+                          initial={{ opacity: 0, x: 10 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.1, duration: 0.25 }}
-                          className="text-red-400 font-extrabold text-base tracking-wide"
+                          transition={{ delay: 0.08, duration: 0.2 }}
+                          className="text-red-400 font-black text-base tracking-wider uppercase drop-shadow-[0_0_10px_rgba(239,68,68,0.7)]"
                         >
-                          Error
+                          Failed
                         </motion.span>
                       </motion.div>
                     )}
@@ -818,6 +912,8 @@ export default function LoginModal({
                 </button>
               </p>
             </div>
+            </>
+            )}
           </div>
         </motion.div>
 
@@ -1118,19 +1214,19 @@ export default function LoginModal({
                                   initial={{ opacity: 0 }}
                                   animate={{ opacity: 1 }}
                                   exit={{ opacity: 0 }}
-                                  className="relative flex items-center justify-center w-28 h-full"
+                                  className="relative flex items-center justify-center w-36 h-full"
                                 >
                                   <motion.div
-                                    initial={{ x: -36, scale: 0.3 }}
-                                    animate={{ x: 0, scale: 1 }}
-                                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                                    className="absolute w-4 h-4 rounded-full bg-gradient-to-tr from-emerald-500 to-green-100 shadow-[0_0_14px_#10B981]"
+                                    initial={{ x: -45, scale: 0.3 }}
+                                    animate={{ x: 0, scale: 1.1 }}
+                                    transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                                    className="absolute w-4 h-4 rounded-full bg-gradient-to-r from-emerald-400 to-green-100 shadow-[0_0_16px_#10B981]"
                                   />
                                   <motion.div
-                                    initial={{ x: 36, scale: 0.3 }}
-                                    animate={{ x: 0, scale: 1 }}
-                                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                                    className="absolute w-4 h-4 rounded-full bg-gradient-to-tr from-emerald-500 to-green-100 shadow-[0_0_14px_#10B981]"
+                                    initial={{ x: 45, scale: 0.3 }}
+                                    animate={{ x: 0, scale: 1.1 }}
+                                    transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                                    className="absolute w-4 h-4 rounded-full bg-gradient-to-l from-emerald-400 to-green-100 shadow-[0_0_16px_#10B981]"
                                   />
                                 </motion.div>
                               )}
@@ -1141,17 +1237,24 @@ export default function LoginModal({
                                   initial={{ opacity: 0 }}
                                   animate={{ opacity: 1 }}
                                   exit={{ opacity: 0 }}
-                                  className="flex items-center gap-1.5"
+                                  className="relative flex items-center gap-2"
                                 >
+                                  {/* Expanding shockwave */}
                                   <motion.div
-                                    initial={{ scale: 0, rotate: -35 }}
-                                    animate={{ scale: [0, 1.3, 1], rotate: 0 }}
-                                    transition={{ type: 'spring', stiffness: 500, damping: 16 }}
+                                    initial={{ scale: 0.1, opacity: 1 }}
+                                    animate={{ scale: 3, opacity: 0 }}
+                                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                                    className="absolute -inset-1 rounded-full border border-emerald-400 pointer-events-none"
+                                  />
+                                  <motion.div
+                                    initial={{ scale: 0, rotate: -40 }}
+                                    animate={{ scale: 1, rotate: 0 }}
+                                    transition={{ type: 'spring', stiffness: 500, damping: 14, bounce: 0.5 }}
                                     className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-[0_0_18px_#10B981]"
                                   >
-                                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                    <Check className="w-3.5 h-3.5 stroke-[3.5]" />
                                   </motion.div>
-                                  <span className="text-emerald-400 font-bold text-xs">نجاح!</span>
+                                  <span className="text-emerald-300 font-extrabold text-xs uppercase tracking-wider">Success!</span>
                                 </motion.div>
                               )}
 
@@ -1161,19 +1264,19 @@ export default function LoginModal({
                                   initial={{ opacity: 0 }}
                                   animate={{ opacity: 1 }}
                                   exit={{ opacity: 0 }}
-                                  className="relative flex items-center justify-center w-28 h-full"
+                                  className="relative flex items-center justify-center w-36 h-full"
                                 >
                                   <motion.div
-                                    initial={{ x: -36, scale: 0.3 }}
-                                    animate={{ x: 0, scale: 1 }}
-                                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                                    className="absolute w-4 h-4 rounded-full bg-gradient-to-tr from-red-500 to-rose-100 shadow-[0_0_14px_#EF4444]"
+                                    initial={{ x: -45, scale: 0.3 }}
+                                    animate={{ x: 0, scale: 1.1 }}
+                                    transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                                    className="absolute w-4 h-4 rounded-full bg-gradient-to-r from-red-500 to-rose-100 shadow-[0_0_16px_#EF4444]"
                                   />
                                   <motion.div
-                                    initial={{ x: 36, scale: 0.3 }}
-                                    animate={{ x: 0, scale: 1 }}
-                                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                                    className="absolute w-4 h-4 rounded-full bg-gradient-to-tr from-red-500 to-rose-100 shadow-[0_0_14px_#EF4444]"
+                                    initial={{ x: 45, scale: 0.3 }}
+                                    animate={{ x: 0, scale: 1.1 }}
+                                    transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                                    className="absolute w-4 h-4 rounded-full bg-gradient-to-l from-red-500 to-rose-100 shadow-[0_0_16px_#EF4444]"
                                   />
                                 </motion.div>
                               )}
@@ -1184,17 +1287,24 @@ export default function LoginModal({
                                   initial={{ opacity: 0 }}
                                   animate={{ opacity: 1 }}
                                   exit={{ opacity: 0 }}
-                                  className="flex items-center gap-1.5"
+                                  className="relative flex items-center gap-2"
                                 >
+                                  {/* Expanding shockwave */}
                                   <motion.div
-                                    initial={{ scale: 0, rotate: 35 }}
-                                    animate={{ scale: [0, 1.3, 1], rotate: 0 }}
-                                    transition={{ type: 'spring', stiffness: 500, damping: 16 }}
+                                    initial={{ scale: 0.1, opacity: 1 }}
+                                    animate={{ scale: 3, opacity: 0 }}
+                                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                                    className="absolute -inset-1 rounded-full border border-red-500 pointer-events-none"
+                                  />
+                                  <motion.div
+                                    initial={{ scale: 0, rotate: 40 }}
+                                    animate={{ scale: 1, rotate: 0 }}
+                                    transition={{ type: 'spring', stiffness: 500, damping: 14, bounce: 0.5 }}
                                     className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-white shadow-[0_0_18px_#EF4444]"
                                   >
-                                    <X className="w-3.5 h-3.5 stroke-[3]" />
+                                    <X className="w-3.5 h-3.5 stroke-[3.5]" />
                                   </motion.div>
-                                  <span className="text-red-400 font-bold text-xs">خطأ!</span>
+                                  <span className="text-red-400 font-extrabold text-xs uppercase tracking-wider">Failed</span>
                                 </motion.div>
                               )}
                             </AnimatePresence>

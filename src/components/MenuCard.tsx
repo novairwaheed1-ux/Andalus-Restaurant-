@@ -11,7 +11,7 @@ interface MenuCardProps {
   key?: string | number;
 }
 
-export default function MenuCard({ item, onClick, onAdd, isSpinning = false }: MenuCardProps) {
+function MenuCardComponent({ item, onClick, onAdd, isSpinning = false }: MenuCardProps) {
   const originalPrice = item.discountPercent 
     ? Math.round(item.defaultPrice / (1 - item.discountPercent / 100))
     : null;
@@ -19,7 +19,7 @@ export default function MenuCard({ item, onClick, onAdd, isSpinning = false }: M
   return (
     <div 
       onClick={onClick}
-      className="bg-white rounded-[28px] p-4 flex flex-col cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition-all duration-300 relative group active:scale-[0.98]"
+      className="menu-card-item bg-white rounded-[28px] p-4 flex flex-col cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition-all duration-300 relative group active:scale-[0.98] transform-gpu"
       dir="rtl"
     >
       {/* Top Badges: Discount & Rating */}
@@ -83,3 +83,6 @@ export default function MenuCard({ item, onClick, onAdd, isSpinning = false }: M
     </div>
   );
 }
+
+const MenuCard = React.memo(MenuCardComponent);
+export default MenuCard;
