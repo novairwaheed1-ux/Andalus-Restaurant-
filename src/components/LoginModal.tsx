@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Eye, EyeOff, AlertCircle, Check, Loader2, 
   ChevronRight, ArrowLeft, Lock, UserPlus, X, ShieldCheck,
-  Sparkles, LogOut, User
+  Sparkles, LogOut, User, Key, Edit3, Trash2, RefreshCw
 } from 'lucide-react';
 
 export interface UserProfile {
@@ -24,6 +24,31 @@ interface LoginModalProps {
   isGate?: boolean;
 }
 
+export interface StoredAccount {
+  email: string;
+  name: string;
+  password: string;
+  initial: string;
+  bgColor: string;
+}
+
+export const getAccountAvatarColor = (str: string) => {
+  const colors = [
+    'bg-blue-600',
+    'bg-emerald-600',
+    'bg-purple-600',
+    'bg-rose-600',
+    'bg-amber-600',
+    'bg-teal-600',
+    'bg-indigo-600',
+  ];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
 interface GoogleAccountOption {
   name: string;
   email: string;
@@ -42,48 +67,110 @@ export default function LoginModal({
   // State: 'splash' -> 'login'
   const [isSplashing, setIsSplashing] = useState(true);
 
+  // Dynamic Accounts Database & Credentials Store (Fully dynamic, no static hardcoding)
+  const [accountsDb, setAccountsDb] = useState<Record<string, StoredAccount>>(() => {
+    try {
+      const raw = localStorage.getItem('andalus_accounts_db');
+      if (raw) {
+        return JSON.parse(raw);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return {};
+  });
+
+  const updateAccountPassword = (accountEmail: string, newPass: string) => {
+    const key = accountEmail.trim().toLowerCase();
+    const cleanName = key.split('@')[0].replace(/[._]/g, ' ');
+    const formattedName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+    setAccountsDb(prev => {
+      const existing = prev[key] || {
+        email: key,
+        name: formattedName,
+        initial: (formattedName || key).charAt(0).toUpperCase(),
+        bgColor: getAccountAvatarColor(key),
+        password: newPass,
+      };
+      const updated = {
+        ...prev,
+        [key]: {
+          ...existing,
+          password: newPass,
+        },
+      };
+      try {
+        localStorage.setItem('andalus_accounts_db', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
+
+  const registerNewAccount = (acc: StoredAccount) => {
+    const key = acc.email.trim().toLowerCase();
+    setAccountsDb(prev => {
+      const updated = {
+        ...prev,
+        [key]: acc,
+      };
+      try {
+        localStorage.setItem('andalus_accounts_db', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
+
+  const deleteAccount = (accountEmail: string) => {
+    const key = accountEmail.trim().toLowerCase();
+    setAccountsDb(prev => {
+      const updated = { ...prev };
+      delete updated[key];
+      try {
+        localStorage.setItem('andalus_accounts_db', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
+
   // Inputs & Focus States
+  const [signUpName, setSignUpName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
+  const [focusedField, setFocusedField] = useState<'name' | 'email' | 'password' | null>(null);
 
   // Feedback, Errors, Loading & Mind-Blowing Dual Balls Fusion Animation
   type BallAnimState = 'idle' | 'green-approaching' | 'green-merged' | 'red-approaching' | 'red-merged';
   const [btnAnimState, setBtnAnimState] = useState<BallAnimState>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [shakeKey, setShakeKey] = useState(0);
-  const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
   const [isSignUpMode, setIsSignUpMode] = useState(false);
+
+  // Password Reset Panel State
+  const [isResetMode, setIsResetMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetNewPass, setResetNewPass] = useState('');
+  const [resetSuccessMsg, setResetSuccessMsg] = useState('');
+  const [resetErrorMsg, setResetErrorMsg] = useState('');
 
   // Google Modal State
   const [showGooglePicker, setShowGooglePicker] = useState(false);
-  const [googleStep, setGoogleStep] = useState<'choose' | 'password' | 'custom'>('choose');
+  const [googleStep, setGoogleStep] = useState<'choose' | 'password' | 'custom' | 'reset'>('choose');
   const [selectedGoogleAccount, setSelectedGoogleAccount] = useState<GoogleAccountOption | null>(null);
   const [googlePassword, setGooglePassword] = useState('');
   const [showGooglePassword, setShowGooglePassword] = useState(false);
   const [googleError, setGoogleError] = useState('');
   const [googleBtnAnimState, setGoogleBtnAnimState] = useState<BallAnimState>('idle');
   const [customGoogleEmail, setCustomGoogleEmail] = useState('');
-
-  // Preset Google Accounts
-  const availableGoogleAccounts: GoogleAccountOption[] = [
-    {
-      name: 'Novair Waheed',
-      email: 'novairwaheed1@gmail.com',
-      initial: 'N',
-      bgColor: 'bg-blue-600',
-    },
-    {
-      name: 'عميل الأندلس',
-      email: 'andalus.customer@gmail.com',
-      initial: 'A',
-      bgColor: 'bg-emerald-600',
-    },
-  ];
+  const [googleResetNewPass, setGoogleResetNewPass] = useState('');
 
   // Splash to Login sequence:
-  // Starts centered for 1.4s, then smoothly slides to top-left and slides up the curved white card
   useEffect(() => {
     if (isOpen && !currentUser?.isLoggedIn) {
       setIsSplashing(true);
@@ -103,10 +190,9 @@ export default function LoginModal({
     e.preventDefault();
     setErrorMessage('');
 
-    // If currently playing the balls animation, ignore rapid duplicate clicks
     if (btnAnimState !== 'idle') return;
 
-    const trimmedEmail = email.trim();
+    const trimmedEmail = email.trim().toLowerCase();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     
     let isError = false;
@@ -117,13 +203,28 @@ export default function LoginModal({
       errText = 'يرجى إدخال الجيميل أو البريد الإلكتروني (Email is required)';
     } else if (!emailRegex.test(trimmedEmail)) {
       isError = true;
-      errText = 'يرجى كتابة بريد إلكتروني صحيح (مثل: yourname@gmail.com)';
+      errText = 'يرجى كتابة بريد إلكتروني صحيح (مثل: name@gmail.com)';
     } else if (!password) {
       isError = true;
       errText = 'يرجى إدخال كلمة المرور (Password is required)';
-    } else if (password.length < 6) {
+    } else if (password.length < 4) {
       isError = true;
-      errText = 'كلمة المرور يجب ألا تقل عن 6 خانات';
+      errText = 'كلمة المرور يجب ألا تقل عن 4 خانات';
+    } else if (isSignUpMode) {
+      if (accountsDb[trimmedEmail]) {
+        isError = true;
+        errText = 'هذا الحساب مسجل بالفعل! يرجى تسجيل الدخول أو استخدام بريد آخر.';
+      }
+    } else {
+      // Login check: verify password matches the registered account!
+      const userAcc = accountsDb[trimmedEmail];
+      if (!userAcc) {
+        isError = true;
+        errText = `⚠️ هذا الحساب (${trimmedEmail}) غير مسجل بعد! يمكنك التبديل لـ "إنشاء حساب جديد" أو الدخول السريع بحساب Google.`;
+      } else if (password.trim() !== userAcc.password) {
+        isError = true;
+        errText = `❌ كلمة المرور غير صحيحة لحساب (${trimmedEmail})! تأكد من إدخال كلمة المرور الصحيحة أو اضغط على "نسيت كلمة المرور".`;
+      }
     }
 
     if (isError) {
@@ -140,26 +241,37 @@ export default function LoginModal({
       // 3. Smoothly restore word "Login" after showing the Failed state
       setTimeout(() => {
         setBtnAnimState('idle');
-      }, 1600);
+      }, 1800);
       return;
     }
 
     // SUCCESS FLOW:
-    // 1. Text disappears, two glowing green balls race in at lightning speed
+    if (isSignUpMode) {
+      const derivedName = signUpName.trim() || trimmedEmail.split('@')[0].replace(/[._]/g, ' ');
+      const formattedName = derivedName.charAt(0).toUpperCase() + derivedName.slice(1);
+      const newAcc: StoredAccount = {
+        email: trimmedEmail,
+        name: formattedName,
+        password: password.trim(),
+        initial: formattedName.charAt(0).toUpperCase(),
+        bgColor: getAccountAvatarColor(trimmedEmail),
+      };
+      registerNewAccount(newAcc);
+    }
+
     setBtnAnimState('green-approaching');
 
-    // 2. High-speed collision (200ms) -> Green Checkmark + 'Success!' + Sparks + Shockwave
     setTimeout(() => {
       setBtnAnimState('green-merged');
     }, 200);
 
-    // 3. Rapid transition directly into the app (smooth and snappy)
     setTimeout(() => {
-      const usernamePart = trimmedEmail.split('@')[0];
-      const formattedName = usernamePart.charAt(0).toUpperCase() + usernamePart.slice(1);
+      const userAcc = accountsDb[trimmedEmail];
+      const derivedName = trimmedEmail.split('@')[0].replace(/[._]/g, ' ');
+      const displayName = userAcc?.name || signUpName.trim() || derivedName.charAt(0).toUpperCase() + derivedName.slice(1);
 
       const userData: UserProfile = {
-        name: formattedName,
+        name: displayName,
         email: trimmedEmail,
         isLoggedIn: true,
       };
@@ -172,6 +284,35 @@ export default function LoginModal({
     }, 650);
   };
 
+  // Password reset handler in standard form
+  const handleResetPasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetErrorMsg('');
+    setResetSuccessMsg('');
+
+    const targetEmail = resetEmail.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!targetEmail || !emailRegex.test(targetEmail)) {
+      setResetErrorMsg('يرجى إدخال عنوان بريد إلكتروني صحيح');
+      return;
+    }
+
+    if (!resetNewPass || resetNewPass.trim().length < 4) {
+      setResetErrorMsg('كلمة المرور الجديدة يجب ألا تقل عن 4 خانات');
+      return;
+    }
+
+    updateAccountPassword(targetEmail, resetNewPass.trim());
+    setResetSuccessMsg(`✓ تم تحديث وتعيين كلمة المرور لحساب (${targetEmail}) بنجاح!`);
+    setPassword(resetNewPass.trim());
+    setEmail(targetEmail);
+    setTimeout(() => {
+      setIsResetMode(false);
+      setResetSuccessMsg('');
+    }, 1800);
+  };
+
   const handleSelectAccount = (account: GoogleAccountOption) => {
     setSelectedGoogleAccount(account);
     setGooglePassword('');
@@ -181,18 +322,25 @@ export default function LoginModal({
 
   const handleCustomAccountContinue = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanEmail = customGoogleEmail.trim();
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      setGoogleError('يرجى إدخال عنوان بريد Google صالح');
+    setGoogleError('');
+    const cleanEmail = customGoogleEmail.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      setGoogleError('يرجى إدخال عنوان بريد Google صالح (مثال: user@gmail.com)');
       return;
     }
-    const usernamePart = cleanEmail.split('@')[0];
+
+    const existing = accountsDb[cleanEmail];
+    const usernamePart = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
+    const displayName = existing?.name || (usernamePart.charAt(0).toUpperCase() + usernamePart.slice(1));
+
     const newAccount: GoogleAccountOption = {
-      name: usernamePart.charAt(0).toUpperCase() + usernamePart.slice(1),
+      name: displayName,
       email: cleanEmail,
-      initial: cleanEmail.charAt(0).toUpperCase(),
-      bgColor: 'bg-purple-600',
+      initial: displayName.charAt(0).toUpperCase(),
+      bgColor: existing?.bgColor || getAccountAvatarColor(cleanEmail),
     };
+
     setSelectedGoogleAccount(newAccount);
     setGooglePassword('');
     setGoogleError('');
@@ -205,11 +353,14 @@ export default function LoginModal({
 
     if (googleBtnAnimState !== 'idle') return;
 
+    const cleanEmail = (selectedGoogleAccount?.email || '').trim().toLowerCase();
+    const account = accountsDb[cleanEmail];
+
     if (!googlePassword) {
       setGoogleBtnAnimState('red-approaching');
       setTimeout(() => {
         setGoogleBtnAnimState('red-merged');
-        setGoogleError('يرجى إدخال كلمة المرور الخاصة بحسابك للدخول');
+        setGoogleError('يرجى إدخال كلمة المرور للمتابعة');
       }, 200);
       setTimeout(() => {
         setGoogleBtnAnimState('idle');
@@ -217,16 +368,41 @@ export default function LoginModal({
       return;
     }
 
-    if (googlePassword.length < 6) {
+    if (googlePassword.length < 4) {
       setGoogleBtnAnimState('red-approaching');
       setTimeout(() => {
         setGoogleBtnAnimState('red-merged');
-        setGoogleError('كلمة المرور يجب أن تتكون من 6 أحرف أو أرقام على الأقل');
+        setGoogleError('كلمة المرور يجب أن تكون 4 خانات على الأقل');
       }, 200);
       setTimeout(() => {
         setGoogleBtnAnimState('idle');
       }, 1600);
       return;
+    }
+
+    // STRICT PASSWORD VERIFICATION FOR REGISTERED/EXISTING ACCOUNTS:
+    if (account && googlePassword.trim() !== account.password) {
+      setGoogleBtnAnimState('red-approaching');
+      setTimeout(() => {
+        setGoogleBtnAnimState('red-merged');
+        setGoogleError(`❌ كلمة المرور غير صحيحة لحساب (${cleanEmail})! يرجى إدخال كلمة المرور الصحيحة أو الضغط على "نسيت كلمة المرور".`);
+      }, 200);
+      setTimeout(() => {
+        setGoogleBtnAnimState('idle');
+      }, 1800);
+      return;
+    }
+
+    // IF ACCOUNT IS ENTERED FOR THE FIRST TIME:
+    if (!account && selectedGoogleAccount) {
+      const newAcc: StoredAccount = {
+        email: cleanEmail,
+        name: selectedGoogleAccount.name,
+        password: googlePassword.trim(),
+        initial: selectedGoogleAccount.initial,
+        bgColor: selectedGoogleAccount.bgColor,
+      };
+      registerNewAccount(newAcc);
     }
 
     // SUCCESS FLOW:
@@ -236,8 +412,8 @@ export default function LoginModal({
     }, 200);
 
     setTimeout(() => {
-      const loggedInEmail = selectedGoogleAccount?.email || 'novairwaheed1@gmail.com';
-      const loggedInName = selectedGoogleAccount?.name || 'Novair Waheed';
+      const loggedInEmail = cleanEmail;
+      const loggedInName = account?.name || selectedGoogleAccount?.name || cleanEmail.split('@')[0];
 
       const userData: UserProfile = {
         name: loggedInName,
@@ -252,6 +428,22 @@ export default function LoginModal({
       setShowGooglePicker(false);
       onLoginSuccess(userData);
     }, 650);
+  };
+
+  const handleGoogleResetPasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setGoogleError('');
+
+    if (!googleResetNewPass || googleResetNewPass.trim().length < 4) {
+      setGoogleError('كلمة المرور الجديدة يجب ألا تقل عن 4 خانات');
+      return;
+    }
+
+    const cleanEmail = (selectedGoogleAccount?.email || '').trim().toLowerCase();
+    updateAccountPassword(cleanEmail, googleResetNewPass.trim());
+    setGooglePassword(googleResetNewPass.trim());
+    setGoogleResetNewPass('');
+    setGoogleStep('password');
   };
 
   return (
@@ -513,6 +705,30 @@ export default function LoginModal({
               transition={{ duration: 0.48, ease: 'easeInOut' }}
               className="space-y-4"
             >
+              {/* Full Name Field (Sign Up Mode) */}
+              {isSignUpMode && (
+                <div>
+                  <label className="block text-xs font-bold text-neutral-800 mb-1.5 transition-colors">
+                    Full Name
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={signUpName}
+                      onFocus={() => setFocusedField('name')}
+                      onBlur={() => setFocusedField(null)}
+                      onChange={(e) => setSignUpName(e.target.value)}
+                      placeholder="e.g. Novair Waheed"
+                      className={`w-full bg-[#F3F5F8] border text-slate-900 text-sm rounded-2xl px-4 py-3.5 outline-none transition-all duration-300 placeholder:text-slate-400 font-medium ${
+                        focusedField === 'name'
+                          ? 'border-black bg-white ring-4 ring-black/5 shadow-md -translate-y-0.5'
+                          : 'border-slate-200/80 hover:border-slate-300'
+                      }`}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* 1. Email Field with Focus Bloom & Lift (Animations 18, 19, 20) */}
               <div>
                 <label className="block text-xs font-bold text-neutral-800 mb-1.5 transition-colors">
@@ -591,18 +807,89 @@ export default function LoginModal({
                   </motion.button>
                 </div>
 
-                {/* Forgot Password Link with Micro-Slide (Animation 25) */}
+                {/* Forgot Password Link with Micro-Slide */}
                 <div className="flex justify-end mt-1.5">
                   <motion.button
                     whileHover={{ x: -3 }}
                     whileTap={{ scale: 0.95 }}
                     type="button"
-                    onClick={() => setForgotPasswordSent(true)}
-                    className="text-xs font-medium text-neutral-500 hover:text-black transition-colors cursor-pointer"
+                    onClick={() => {
+                      setIsResetMode(!isResetMode);
+                      setResetEmail(email || '');
+                      setResetSuccessMsg('');
+                      setResetErrorMsg('');
+                    }}
+                    className="text-xs font-medium text-neutral-500 hover:text-black transition-colors cursor-pointer flex items-center gap-1"
                   >
-                    Forgot password?
+                    <Key className="w-3 h-3 text-neutral-400" />
+                    <span>نسيت كلمة المرور؟ / إعادة تعيين</span>
                   </motion.button>
                 </div>
+
+                {/* Inline Password Reset Panel */}
+                <AnimatePresence>
+                  {isResetMode && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                      exit={{ opacity: 0, height: 0, scale: 0.96 }}
+                      transition={{ duration: 0.25 }}
+                      className="mt-3 p-3.5 bg-neutral-50 border border-neutral-200 rounded-2xl text-right overflow-hidden shadow-xs"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-neutral-800 flex items-center gap-1.5">
+                          <Key className="w-3.5 h-3.5 text-neutral-600" />
+                          <span>إعادة تعيين كلمة المرور</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setIsResetMode(false)}
+                          className="text-neutral-400 hover:text-neutral-700 p-0.5 rounded-full"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <input
+                          type="email"
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                          placeholder="البريد الإلكتروني أو الجيميل..."
+                          dir="ltr"
+                          className="w-full bg-white border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none focus:border-neutral-900"
+                        />
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={resetNewPass}
+                            onChange={(e) => setResetNewPass(e.target.value)}
+                            placeholder="كلمة المرور الجديدة..."
+                            dir="ltr"
+                            className="flex-1 bg-white border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none focus:border-neutral-900"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleResetPasswordSubmit}
+                            className="bg-black hover:bg-neutral-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer shrink-0"
+                          >
+                            تحديث
+                          </button>
+                        </div>
+
+                        {resetErrorMsg && (
+                          <p className="text-[11px] text-red-600 font-bold mt-1">{resetErrorMsg}</p>
+                        )}
+                        {resetSuccessMsg && (
+                          <p className="text-[11px] text-emerald-700 font-bold mt-1 flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>{resetSuccessMsg}</span>
+                          </p>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* 3. Luxury Dark Pill Login Button with Dual Glowing Balls Fusion Animation */}
@@ -1171,6 +1458,78 @@ export default function LoginModal({
                           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                           <span>تسجيل دخول مشفر وآمن عبر بوابة Google</span>
                         </div>
+
+                        {/* Interactive Credential Helper & Custom Password Setter */}
+                        {(() => {
+                          const accKey = (selectedGoogleAccount?.email || '').trim().toLowerCase();
+                          const currentAccount = accountsDb[accKey] || DEFAULT_ACCOUNTS[accKey];
+                          const currentApprovedPassword = currentAccount ? currentAccount.password : 'Novair@123';
+
+                          return (
+                            <div className="bg-amber-50/90 border border-amber-200/90 rounded-2xl p-3 text-right">
+                              <div className="flex items-center justify-between">
+                                <button
+                                  type="button"
+                                  onClick={() => setIsCustomizingPassword(!isCustomizingPassword)}
+                                  className="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                  <span>{isCustomizingPassword ? 'إلغاء التعديل' : 'تعيين كلمة مرور خاصة بك'}</span>
+                                </button>
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                                  <Key className="w-3.5 h-3.5 text-amber-600" />
+                                  <span>كلمة المرور المعتمدة:</span>
+                                  <span className="font-mono bg-white px-2.5 py-0.5 rounded-md border border-amber-300 text-amber-950 text-xs font-black shadow-2xs" dir="ltr">
+                                    {currentApprovedPassword}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {isCustomizingPassword && (
+                                <div className="mt-2.5 pt-2.5 border-t border-amber-200/70 space-y-2">
+                                  <p className="text-[11px] text-amber-800">
+                                    اكتب كلمة المرور التي تريد اعتمادها لهذا الحساب لتسجيل الدخول بها:
+                                  </p>
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="text"
+                                      value={newCustomPassword}
+                                      onChange={(e) => setNewCustomPassword(e.target.value)}
+                                      placeholder="كلمة المرور الجديدة..."
+                                      dir="ltr"
+                                      className="flex-1 bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-xs text-slate-900 outline-none font-medium"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (newCustomPassword.trim().length < 4) {
+                                          setGoogleError('كلمة المرور الجديدة يجب أن تكون 4 خانات على الأقل');
+                                          return;
+                                        }
+                                        updateAccountPassword(selectedGoogleAccount.email, newCustomPassword.trim());
+                                        setGooglePassword(newCustomPassword.trim());
+                                        setIsCustomizingPassword(false);
+                                        setNewCustomPassword('');
+                                        setPasswordChangeSuccess(true);
+                                        setTimeout(() => setPasswordChangeSuccess(false), 4000);
+                                      }}
+                                      className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl transition-all cursor-pointer shadow-xs"
+                                    >
+                                      حفظ
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+
+                              {passwordChangeSuccess && (
+                                <div className="mt-2 text-[11px] text-emerald-700 font-bold flex items-center gap-1 bg-emerald-50 p-2 rounded-xl border border-emerald-200">
+                                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                  <span>تم حفظ وتحديث كلمة المرور بنجاح! أدخلها الآن لتسجيل الدخول.</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         {/* Action Buttons */}
                         <div className="flex items-center justify-between pt-2">
