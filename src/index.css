@@ -1,9 +1,30 @@
 @import "tailwindcss";
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior-y: none;
+  }
+
   body {
     font-family: 'Readex Pro', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overscroll-behavior-y: none;
+    touch-action: pan-y;
+    -webkit-tap-highlight-color: transparent;
   }
+
+  /* Prevent automatic iOS & Android viewport zoom, shaking, and layout shifts when tapping inputs */
+  input, textarea, select {
+    font-size: 16px !important;
+    touch-action: manipulation;
+  }
+}
+
+/* Supercharge rendering performance for smooth 120fps scrolling */
+.menu-card-item {
+  content-visibility: auto;
+  contain-intrinsic-size: 280px;
 }
 
 /* Custom 3D perspective and transforms */

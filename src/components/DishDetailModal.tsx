@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronRight, Star, Minus, Plus, ShoppingBag, Check } from 'lucide-react';
 import type { MenuItem, SizeOption, CartItem } from '../types';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from "motion/react";
 import { TOPPINGS } from '../data/menuData';
 
 interface DishDetailModalProps {
   item: MenuItem;
   onClose: () => void;
-  onAdd: (item: CartItem, startX: number, startY: number) => void;
+  onAdd: (item: CartItem, startX: number, startY: number, startSize?: number, customImg?: string) => void;
 }
 
 export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModalProps) {
@@ -18,6 +18,7 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
   const [rotation, setRotation] = useState(0);
   const [hasLanded, setHasLanded] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [modalImg, setModalImg] = useState(item.image);
   const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
@@ -63,11 +64,13 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
 
     let centerX = window.innerWidth / 2;
     let centerY = window.innerHeight / 2;
+    let dishSize = 200;
 
     if (imageRef.current) {
       const rect = imageRef.current.getBoundingClientRect();
       centerX = rect.left + rect.width / 2;
       centerY = rect.top + rect.height / 2;
+      dishSize = rect.width || 200;
     }
 
     const toppingsTotal = selectedToppings.reduce((sum, id) => {
@@ -86,7 +89,8 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
       image: item.image,
       description: item.description,
     };
-    onAdd(cartItem, centerX, centerY);
+    const activeImg = imageRef.current?.src || item.image;
+    onAdd(cartItem, centerX, centerY, dishSize, activeImg);
   };
 
   const currentPrice = selectedSize.price + selectedToppings.reduce((sum, id) => sum + (TOPPINGS.find(t => t.id === id)?.price || 0), 0);
@@ -140,7 +144,7 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
               </div>
 
               {/* Big Vibrant Price */}
-              <div className="text-[#FF5B2E] font-black text-3xl sm:text-4xl mb-3 tracking-tight">
+              <div className="text-[#0D1E3A] font-black text-3xl sm:text-4xl mb-3 tracking-tight">
                 {currentPrice} <span className="text-base font-bold text-slate-600">ج.م</span>
               </div>
 
@@ -180,9 +184,16 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
                 <img 
                   ref={imageRef}
                   referrerPolicy="no-referrer" 
-                  src={item.image} 
+                  src={modalImg} 
                   alt={item.name}
                   decoding="async"
+                  onError={() => {
+                    if (modalImg.endsWith('.webp')) {
+                      setModalImg(modalImg.replace(/\.webp$/, '.jpg'));
+                    } else if (!modalImg.includes('/thumbs/')) {
+                      setModalImg(item.image.replace('/items/', '/thumbs/'));
+                    }
+                  }}
                   className="w-full h-full object-cover drop-shadow-[0_12px_24px_rgba(0,0,0,0.2)] rounded-full"
                 />
 
@@ -239,7 +250,7 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
                       {isSelected && (
                         <motion.div 
                           layoutId="size-bg"
-                          className="absolute inset-0 bg-[#FF5B2E] rounded-full -z-10 shadow-md shadow-orange-500/30"
+                          className="absolute inset-0 bg-[#0D1E3A] rounded-full -z-10 shadow-md shadow-slate-900/30"
                           transition={{ type: 'spring', bounce: 0.25, duration: 0.4 }}
                         />
                       )}
@@ -264,7 +275,7 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
                       onClick={() => toggleTopping(topping.id)}
                       className={`flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border transition-all shrink-0 active:scale-95 ${
                         isSelected 
-                          ? 'border-[#FF5B2E] bg-orange-50 text-[#FF5B2E] shadow-sm' 
+                          ? 'border-[#0D1E3A] bg-blue-50/80 text-[#0D1E3A] font-bold shadow-xs' 
                           : 'border-slate-200/80 bg-white text-slate-700 hover:border-slate-300'
                       }`}
                     >
@@ -314,7 +325,7 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
             className={`flex-1 rounded-full h-14 flex items-center justify-center gap-3 font-bold text-base sm:text-lg transition-all shadow-xl ${
               isAdding 
                 ? 'bg-emerald-600 text-white scale-[0.98]' 
-                : 'bg-[#1A1A1A] hover:bg-black text-white active:scale-95 hover:shadow-black/20'
+                : 'bg-[#0D1E3A] hover:bg-[#1A3258] text-white active:scale-95 shadow-slate-900/25'
             }`}
           >
             {isAdding ? (
@@ -324,7 +335,7 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
               </>
             ) : (
               <>
-                <ShoppingBag className="w-5 h-5 text-[#FF5B2E]" />
+                <ShoppingBag className="w-5 h-5 text-white" />
                 <span>إضافة للسلة ({currentPrice * quantity} ج.م)</span>
               </>
             )}

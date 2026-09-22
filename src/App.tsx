@@ -1,27 +1,21 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { CATEGORIES, MENU_ITEMS } from './data/menuData';
 import type { MenuItem, CartItem } from './types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Grid, Home, Package, ShoppingBag, User, MapPin, ChevronDown, Bell, Phone, LogIn, ChevronDown as MoreIcon } from 'lucide-react';
+import { motion, AnimatePresence } from "motion/react";
+import { Plus, Grid, Home, Package, ShoppingBag, User, MapPin, ChevronDown, Bell, Phone, LogIn } from 'lucide-react';
 import MenuCard from './components/MenuCard';
 import DishDetailModal from './components/DishDetailModal';
 import CartDrawer from './components/CartDrawer';
 import LoginModal, { type UserProfile } from './components/LoginModal';
 import OrderModal from './components/OrderModal';
+import { auth, onAuthStateChanged, fbSignOut } from './lib/firebase';
 
 export default function App() {
   const [activeCategory, setActiveCategory] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [spinningItemId, setSpinningItemId] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(24);
-  
-  // Reset pagination when changing filters
-  useEffect(() => {
-    setVisibleCount(24);
-  }, [activeCategory, searchQuery]);
   
   // Login & Order Modals State - Persistent login so the user is never kicked out
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
@@ -37,15 +31,31 @@ export default function App() {
     return null;
   });
 
-  // Login is open on initial entry if not logged in
-  const [isLoginOpen, setIsLoginOpen] = useState(() => {
-    try {
-      const saved = localStorage.getItem('andalus_current_user');
-      return !saved;
-    } catch {
-      return true;
-    }
-  });
+  // Login modal toggle
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+
+  // Synchronize with real Firebase Authentication state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      if (fbUser) {
+        const user: UserProfile = {
+          name: fbUser.displayName || fbUser.email?.split('@')[0] || 'مستخدم Google',
+          email: fbUser.email || '',
+          avatar: fbUser.photoURL || undefined,
+          isLoggedIn: true,
+          rememberMe: true,
+        };
+        setCurrentUser(user);
+        try {
+          localStorage.setItem('andalus_current_user', JSON.stringify(user));
+        } catch (e) {
+          console.error(e);
+        }
+        setIsLoginOpen(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleLoginSuccess = useCallback((user: UserProfile) => {
     setCurrentUser(user);
@@ -58,6 +68,7 @@ export default function App() {
   }, []);
 
   const handleLogout = useCallback(() => {
+    fbSignOut(auth).catch(() => {});
     setCurrentUser(null);
     try {
       localStorage.removeItem('andalus_current_user');
@@ -68,25 +79,21 @@ export default function App() {
   }, []);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   
-  // Animation coordinates
-  const [flyStartCoords, setFlyStartCoords] = useState<{x: number, y: number} | null>(null);
+  // Animation coordinates, cart jump and realistic physical vibration state
+  const [flyStartCoords, setFlyStartCoords] = useState<{x: number, y: number, size?: number} | null>(null);
   const [flyEndCoords, setFlyEndCoords] = useState<{x: number, y: number} | null>(null);
   const [isFlying, setIsFlying] = useState(false);
   const [flyingImage, setFlyingImage] = useState('');
-  const [isCartBumping, setIsCartBumping] = useState(false);
+  const [isCartJumping, setIsCartJumping] = useState(false);
+  const [isCartVibrating, setIsCartVibrating] = useState(false);
+  const jumpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const filteredItems = useMemo(() => {
-    return MENU_ITEMS.filter((item) => {
-      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            item.description.toLowerCase().includes(searchQuery.toLowerCase());
-      if (activeCategory === 'all') return matchesSearch;
-      return item.category === activeCategory && matchesSearch;
-    });
-  }, [activeCategory, searchQuery]);
+    if (activeCategory === 'all') return MENU_ITEMS;
+    return MENU_ITEMS.filter((item) => item.category === activeCategory);
+  }, [activeCategory]);
 
-  const displayedItems = useMemo(() => {
-    return filteredItems.slice(0, visibleCount);
-  }, [filteredItems, visibleCount]);
+  const displayedItems = filteredItems;
 
   const handleItemClick = useCallback((item: MenuItem) => {
     // Immediate responsive transition without lagging
@@ -94,7 +101,7 @@ export default function App() {
     setSelectedItem(item);
   }, []);
 
-  const handleAddToCart = useCallback((item: CartItem, startX: number, startY: number) => {
+  const handleAddToCart = useCallback((item: CartItem, startX: number, startY: number, startSize: number = 150, customImg?: string) => {
     setCartItems(prev => {
       const existing = prev.find(i => i.menuItemId === item.menuItemId && i.sizeId === item.sizeId);
       if (existing) {
@@ -114,62 +121,45 @@ export default function App() {
       endY = rect.top + rect.height / 2;
     }
     
-    setFlyingImage(item.image);
-    setFlyStartCoords({ x: startX, y: startY });
+    // Prefer pre-cached thumbnail or currently loaded image src so image displays instantly with 0 decoding latency
+    const resolvedImg = customImg || (item.image.startsWith('/items/') ? item.image.replace('/items/', '/thumbs/') : item.image);
+    setFlyingImage(resolvedImg);
+    setFlyStartCoords({ x: startX, y: startY, size: startSize });
     setFlyEndCoords({ x: endX, y: endY });
     setIsFlying(true);
+    setIsCartJumping(false);
+    setIsCartVibrating(false);
+
+    // After 580ms of flight (in total 1.0s animation), the cart leaps up and grows big to catch the incoming dish!
+    if (jumpTimerRef.current) clearTimeout(jumpTimerRef.current);
+    jumpTimerRef.current = setTimeout(() => {
+      setIsCartJumping(true);
+    }, 580);
     
-    // Smooth, relaxed exit timing: allows the user to clearly see the flying animation before the modal closes
-    setTimeout(() => {
-      setSelectedItem(null);
-      setSpinningItemId(null);
-    }, 750);
+    // Close modal immediately so there are no heavy layout/re-render spikes mid-flight
+    setSelectedItem(null);
+    setSpinningItemId(null);
   }, []);
 
   const cartItemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex justify-center items-start selection:bg-[#FF5B2E]/20 relative overflow-x-hidden font-sans" dir="rtl">
+    <div className="min-h-screen bg-[#F4F6F9] text-slate-900 flex flex-col items-center selection:bg-[#0D1E3A] selection:text-white relative overflow-x-hidden font-sans" dir="rtl">
       
-      {/* 
-        الجزء الثالث من الموقع (العلوي) باللون الأحمر الداكن المركز ويتدرج بنعومة من تحت
-      */}
-      <div 
-        className="absolute top-0 inset-x-0 h-96 sm:h-[420px] pointer-events-none z-0 overflow-hidden"
-        style={{
-          background: 'linear-gradient(180deg, rgba(185, 28, 28, 0.65) 0%, rgba(153, 27, 27, 0.45) 45%, rgba(127, 29, 29, 0.22) 75%, rgba(248, 250, 252, 0) 100%)',
-          willChange: 'transform',
-          transform: 'translateZ(0)'
-        }}
-      />
-      
-      {/* التدرج السفلي الناعم المتناسق */}
-      <div 
-        className="absolute inset-x-0 bottom-0 h-80 sm:h-96 pointer-events-none z-0 overflow-hidden"
-        style={{
-          background: 'linear-gradient(0deg, rgba(220, 38, 38, 0.22) 0%, rgba(185, 28, 28, 0.12) 50%, rgba(248, 250, 252, 0) 100%)',
-          willChange: 'transform',
-          transform: 'translateZ(0)'
-        }}
-      />
-
-      {/* Consistent Responsive Container (Mobile, iPad, Laptop maintain exact proportional beauty) */}
-      <div className="w-full max-w-[440px] md:max-w-[460px] min-h-screen relative flex flex-col z-10 pb-32">
-        
-        {/* Header Section matching Video Frame 00:00 */}
-        <header className="px-5 pt-8 pb-3 relative z-10">
-          
+      {/* Top Header Section - Deep Navy Blue with smooth organic curved bottom */}
+      <header className="w-full bg-[#0D1E3A] text-white pt-6 pb-7 px-4 sm:px-6 rounded-b-[42px] shadow-xl shadow-slate-950/20 relative z-10">
+        <div className="w-full max-w-[460px] md:max-w-2xl lg:max-w-4xl mx-auto">
           {/* Delivery Location & Direct Call Bar */}
-          <div className="flex items-center justify-between gap-3 mb-6">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md shadow-sm border border-slate-100 flex items-center justify-center text-[#FF5B2E]">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-amber-400 shadow-xs">
                 <MapPin className="w-5 h-5" />
               </div>
-              <div>
-                <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">التوصيل إلى</div>
-                <div className="flex items-center gap-1 font-black text-sm text-slate-900">
+              <div className="flex flex-col">
+                <span className="text-[11px] text-slate-300 font-bold uppercase tracking-wider leading-tight">التوصيل إلى</span>
+                <div className="flex items-center gap-1 font-black text-sm text-white mt-0.5">
                   <span>ديروط - أول منزل أبو جبل</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-300" />
                 </div>
               </div>
             </div>
@@ -177,7 +167,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <a 
                 href="tel:01008141062" 
-                className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md shadow-sm border border-slate-100 flex items-center justify-center text-slate-800 hover:text-[#FF5B2E] transition-colors active:scale-95"
+                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white transition-colors active:scale-95 shadow-xs"
                 title="اتصال مباشر: 01008141062"
               >
                 <Phone className="w-4 h-4" />
@@ -186,7 +176,7 @@ export default function App() {
               {/* User Avatar / Login Button */}
               <button 
                 onClick={() => setIsLoginOpen(true)}
-                className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden active:scale-95 transition-transform"
+                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center overflow-hidden active:scale-95 transition-transform shadow-xs cursor-pointer"
                 title={currentUser?.isLoggedIn ? `مرحباً ${currentUser.name}` : "تسجيل الدخول"}
               >
                 {currentUser?.isLoggedIn ? (
@@ -198,66 +188,54 @@ export default function App() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-[#FF3B30] text-white flex items-center justify-center font-black text-sm shadow-inner">
+                    <div className="w-full h-full bg-[#1A3258] text-white flex items-center justify-center font-black text-sm shadow-inner">
                       {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
                     </div>
                   )
                 ) : (
-                  <User className="w-4 h-4 text-slate-700" />
+                  <User className="w-4 h-4 text-white" />
                 )}
               </button>
             </div>
           </div>
 
-          {/* Headline from Video */}
-          <h1 className="text-[32px] sm:text-[34px] font-black text-slate-900 tracking-tight leading-tight mb-5">
-            جعان يا صحبي؟ <span className="text-[#FF5B2E]">اطلب واستمتع 🍕</span>
+          {/* Headline */}
+          <h1 className="text-[25px] sm:text-[29px] font-black text-white tracking-tight leading-snug mb-4">
+            جعان يا صحبي؟ <span className="text-amber-400">اطلب واستمتع 🍕</span>
           </h1>
 
-          {/* Search Bar */}
-          <div className="relative mb-6">
-            <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
-              <Search className="h-5 w-5" />
-            </div>
-            <input
-              type="text"
-              className="block w-full pr-11 pl-4 py-3.5 bg-white/95 backdrop-blur-md border border-slate-100 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FF5B2E] shadow-[0_2px_12px_rgba(0,0,0,0.03)] text-[15px] font-semibold"
-              placeholder="ابحث عن بيتزا، كريب، حواوشي..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          {/* Category Circles matching Video Frame 00:00 */}
-          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-5 px-5">
+          {/* Category Circles */}
+          <div className="flex gap-3 sm:gap-3.5 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 sm:-mx-6 sm:px-6">
             {CATEGORIES.map((cat) => {
               const isActive = activeCategory === cat.id;
+              const catIcon = cat.icon.startsWith('/items/') ? cat.icon.replace('/items/', '/thumbs/') : cat.icon;
               return (
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
-                  className="flex flex-col items-center gap-2.5 shrink-0 group active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1.5 shrink-0 group active:scale-95 transition-transform cursor-pointer"
                 >
-                  <div className={`w-[68px] h-[68px] rounded-full flex items-center justify-center transition-all ${
+                  <div className={`w-[62px] h-[62px] rounded-full flex items-center justify-center transition-all ${
                     isActive 
-                      ? 'bg-[#1A1A1A] text-white shadow-xl shadow-black/20 scale-105' 
-                      : 'bg-white/90 backdrop-blur-md border border-slate-100 text-slate-800 shadow-sm hover:shadow-md'
+                      ? 'bg-white text-[#0D1E3A] shadow-xl shadow-slate-950/25 scale-105 ring-4 ring-white/30' 
+                      : 'bg-white/90 text-slate-800 shadow-md hover:shadow-lg hover:bg-white border border-white/40'
                   }`}>
                     {cat.icon === 'grid' ? (
-                      <Grid className={`w-7 h-7 ${isActive ? 'text-white' : 'text-slate-800'}`} />
+                      <Grid className={`w-6 h-6 ${isActive ? 'text-[#0D1E3A]' : 'text-slate-800'}`} />
                     ) : (
                       <div className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center">
                         <img 
                           referrerPolicy="no-referrer" 
-                          src={cat.icon} 
+                          src={catIcon} 
                           alt={cat.name} 
-                          className="w-full h-full object-cover p-1.5" 
+                          loading="eager"
+                          className="w-full h-full object-cover p-1" 
                         />
                       </div>
                     )}
                   </div>
-                  <span className={`text-xs font-black tracking-tight transition-colors ${
-                    isActive ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'
+                  <span className={`text-[12px] whitespace-nowrap transition-colors mt-0.5 ${
+                    isActive ? 'text-white font-black drop-shadow-xs' : 'text-slate-300 font-bold'
                   }`}>
                     {cat.name}
                   </span>
@@ -265,72 +243,68 @@ export default function App() {
               );
             })}
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* 2-Column Food Grid matching Video */}
-        <main className="px-5 relative z-10">
-          <div className="flex items-center justify-between mb-4 mt-2">
-            <span className="text-xs font-black uppercase tracking-wider text-slate-400">
-              الأصناف المتوفرة ({filteredItems.length})
-            </span>
-          </div>
+      {/* Main Food Section - Cleanly positioned on light background with generous spacing */}
+      <main className="w-full max-w-[460px] md:max-w-2xl lg:max-w-4xl px-4 sm:px-6 pt-6 pb-32 relative z-10 flex-grow">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2 tracking-tight">
+            <span>الأكثر طلباً</span>
+            <span className="text-lg">🔥</span>
+          </h2>
+          <span className="text-xs font-black text-[#0D1E3A] bg-blue-50/80 border border-blue-200/80 px-3.5 py-1.5 rounded-full shadow-xs">
+            {filteredItems.length} صنف جاهز للطلب
+          </span>
+        </div>
 
-          <div className="grid grid-cols-2 gap-3.5 sm:gap-4">
-            {displayedItems.map(item => (
-              <MenuCard 
-                key={item.id} 
-                item={item} 
-                isSpinning={spinningItemId === item.id}
-                onClick={() => handleItemClick(item)}
-                onAdd={(e) => {
-                  const rect = (e.target as HTMLElement).getBoundingClientRect();
-                  const startX = rect.left + rect.width / 2;
-                  const startY = rect.top + rect.height / 2;
-                  
-                  const newItem: CartItem = {
-                    id: Date.now().toString(),
-                    menuItemId: item.id,
-                    name: item.name,
-                    image: item.image,
-                    sizeId: item.sizes[0].id,
-                    sizeName: item.sizes[0].name,
-                    price: item.sizes[0].price,
-                    quantity: 1,
-                    description: item.description
-                  };
-                  
-                  handleAddToCart(newItem, startX, startY);
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Progressive Load More (Keeps app feather-light on any device) */}
-          {visibleCount < filteredItems.length && (
-            <div className="mt-6 mb-2 flex justify-center">
-              <button
-                onClick={() => setVisibleCount(prev => prev + 24)}
-                className="px-6 py-3 bg-white/95 hover:bg-white text-slate-800 font-black text-xs rounded-2xl shadow-sm border border-slate-200/80 active:scale-95 transition-all flex items-center gap-2"
-              >
-                <span>عرض المزيد ({filteredItems.length - visibleCount} صنف إضافي)</span>
-                <MoreIcon className="w-4 h-4 text-[#FF5B2E]" />
-              </button>
-            </div>
-          )}
-        </main>
-      </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4.5">
+          {displayedItems.map((item, idx) => (
+            <MenuCard 
+              key={`${activeCategory}-${item.id}`} 
+              item={item} 
+              index={idx}
+              isSpinning={spinningItemId === item.id}
+              onClick={() => handleItemClick(item)}
+              onAdd={(e) => {
+                const cardEl = (e.currentTarget.closest('.menu-card') as HTMLElement) || (e.currentTarget as HTMLElement);
+                const imgEl = cardEl?.querySelector('img');
+                const rect = imgEl ? imgEl.getBoundingClientRect() : e.currentTarget.getBoundingClientRect();
+                const startX = rect.left + rect.width / 2;
+                const startY = rect.top + rect.height / 2;
+                const startSize = rect.width || 140;
+                
+                const newItem: CartItem = {
+                  id: Date.now().toString(),
+                  menuItemId: item.id,
+                  name: item.name,
+                  image: item.image,
+                  sizeId: item.sizes[0].id,
+                  sizeName: item.sizes[0].name,
+                  price: item.sizes[0].price,
+                  quantity: 1,
+                  description: item.description
+                };
+                
+                const currentImgSrc = imgEl?.src || (item.image.startsWith('/items/') ? item.image.replace('/items/', '/thumbs/') : item.image);
+                handleAddToCart(newItem, startX, startY, startSize, currentImgSrc);
+              }}
+            />
+          ))}
+        </div>
+      </main>
 
       {/* Floating Bottom Nav - Identical on Mobile, iPad, Laptop */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[380px] bg-[#1A1A1A] px-8 py-4 rounded-[40px] flex items-center justify-between shadow-2xl shadow-black/25 z-[150]">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[380px] bg-[#0D1E3A] px-8 py-4 rounded-[40px] flex items-center justify-between shadow-2xl shadow-slate-950/40 z-[150] border border-white/10">
         <button 
           onClick={() => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className="text-[#FF5B2E] transition-colors relative flex flex-col items-center"
+          className="text-amber-400 transition-colors relative flex flex-col items-center"
           title="الرئيسية"
         >
           <Home className="w-6 h-6" />
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#FF5B2E] rounded-full"></div>
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-amber-400 rounded-full"></div>
         </button>
 
         {/* Orders & Live Tracking Button (Replacing Heart) */}
@@ -342,22 +316,65 @@ export default function App() {
           <Package className="w-6 h-6" />
         </button>
 
-        {/* Cart Button */}
+        {/* Cart Button with Mid-Air Jump & Catch */}
         <button 
           className="text-slate-400 hover:text-white transition-colors relative cart-icon-target active:scale-90"
           onClick={() => setIsCartOpen(true)}
           title="سلة المشتريات"
         >
+          {/* Catch Ripple Burst when dish lands */}
+          {isCartVibrating && (
+            <span className="absolute -inset-4 rounded-full bg-amber-400/70 animate-ping pointer-events-none" />
+          )}
+
+          {/* Jump Aura when cart leaps into the air and grows big */}
+          {isCartJumping && (
+            <span className="absolute -inset-3.5 rounded-full bg-amber-400/50 animate-pulse pointer-events-none" />
+          )}
+
           <motion.div
-            animate={isCartBumping ? { scale: [1, 1.25, 1], x: [0, -4, 4, -4, 4, 0], rotate: [0, -15, 15, -15, 15, 0] } : { scale: 1, x: 0, rotate: 0 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="relative"
+            animate={
+              isCartVibrating ? { 
+                y: [-46, -48, 5, -2, 0],
+                scale: [2.1, 2.35, 0.85, 1.25, 0.95, 1],
+                rotate: [-10, 14, -8, 4, 0]
+              } : isCartJumping ? {
+                y: -46,
+                scale: 2.1,
+                rotate: -10
+              } : { 
+                y: 0, 
+                scale: 1, 
+                rotate: 0 
+              }
+            }
+            transition={
+              isCartVibrating ? { 
+                duration: 0.65, 
+                ease: "easeOut"
+              } : isCartJumping ? {
+                type: "spring",
+                stiffness: 450,
+                damping: 15
+              } : { 
+                duration: 0.25 
+              }
+            }
+            className="relative will-change-transform"
           >
-            <ShoppingBag className="w-6 h-6" />
+            <ShoppingBag className={`w-6 h-6 transition-colors duration-150 ${
+              isCartJumping || isCartVibrating 
+                ? 'text-amber-400 drop-shadow-[0_0_18px_rgba(251,191,36,1)] scale-110' 
+                : ''
+            }`} />
             {cartItemCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-[#FF5B2E] text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
+              <motion.span 
+                animate={isCartVibrating ? { scale: [1, 2.2, 1.15], y: [-8, 0] } : isCartJumping ? { scale: 1.3 } : { scale: 1, y: 0 }}
+                transition={{ duration: 0.45 }}
+                className="absolute -top-1.5 -right-2 bg-amber-400 text-[#0D1E3A] text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-md"
+              >
                 {cartItemCount}
-              </span>
+              </motion.span>
             )}
           </motion.div>
         </button>
@@ -369,7 +386,7 @@ export default function App() {
           title={currentUser?.isLoggedIn ? `حسابي (${currentUser.name})` : "تسجيل الدخول"}
         >
           {currentUser?.isLoggedIn ? (
-            <div className="relative w-6 h-6 rounded-full overflow-hidden border border-[#FF5B2E]">
+            <div className="relative w-6 h-6 rounded-full overflow-hidden border border-amber-400">
               {currentUser.avatar ? (
                 <img 
                   referrerPolicy="no-referrer"
@@ -378,7 +395,7 @@ export default function App() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-[#FF3B30] text-white flex items-center justify-center font-bold text-[10px]">
+                <div className="w-full h-full bg-[#1A3258] text-white flex items-center justify-center font-bold text-[10px]">
                   {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
                 </div>
               )}
@@ -416,15 +433,10 @@ export default function App() {
         }}
       />
 
-      {/* Login & Profile Modal - Smooth gate on entry, never kicks out active user */}
+      {/* Login & Profile Modal */}
       <LoginModal 
         isOpen={isLoginOpen}
-        isGate={!currentUser}
-        onClose={() => {
-          if (currentUser) {
-            setIsLoginOpen(false);
-          }
-        }}
+        onClose={() => setIsLoginOpen(false)}
         currentUser={currentUser}
         onLoginSuccess={handleLoginSuccess}
         onLogout={handleLogout}
@@ -441,46 +453,101 @@ export default function App() {
         }}
       />
 
-      {/* Fly to Cart Animation - Slower, relaxed and graceful arc trajectory */}
+      {/* Fly to Cart Animation - Exactly 1.0s duration, shrinking gradually step-by-step ("سنة سنة") while cart leaps high and expands to catch it */}
       <AnimatePresence>
-        {isFlying && flyStartCoords && flyEndCoords && (
-          <motion.img 
-            referrerPolicy="no-referrer"
-            initial={{ 
-              x: flyStartCoords.x - 65, 
-              y: flyStartCoords.y - 65, 
-              scale: 0.7, 
-              opacity: 1,
-              rotate: 0
-            }}
-            animate={{ 
-              x: [flyStartCoords.x - 65, flyStartCoords.x - 65, flyEndCoords.x - 65],
-              y: [flyStartCoords.y - 65, flyStartCoords.y - 130, flyEndCoords.y - 65], 
-              scale: [0.7, 1.05, 0.15],
-              opacity: [1, 1, 1, 0], 
-              rotate: [0, 360, 720]
-            }}
-            transition={{
-              duration: 0.95,
-              times: [0, 0.45, 1],
-              ease: [0.22, 1, 0.36, 1]
-            }}
-            onAnimationComplete={() => {
-              setIsFlying(false);
-              setFlyStartCoords(null);
-              setFlyEndCoords(null);
-              setIsCartBumping(true);
-              setTimeout(() => setIsCartBumping(false), 500);
-            }}
-            src={flyingImage}
-            decoding="async"
-            className="fixed z-[250] w-36 h-36 object-cover drop-shadow-2xl pointer-events-none rounded-full will-change-transform"
-            style={{ 
-              top: 0,
-              left: 0,
-            }}
-          />
-        )}
+        {isFlying && flyStartCoords && flyEndCoords && (() => {
+          const startX = flyStartCoords.x;
+          const startY = flyStartCoords.y;
+          const dishSize = flyStartCoords.size || 150;
+          const endX = flyEndCoords.x;
+          const endY = flyEndCoords.y;
+          
+          // Parabolic curve apex (lifts up prominently over the dish before plunging)
+          const midX = startX + (endX - startX) * 0.45;
+          const apexY = Math.min(startY, endY) - 95;
+
+          // Target final scale so it shrinks right into the cart opening (~24px)
+          const finalScale = Math.max(0.09, 24 / dishSize);
+
+          // The cart leaps 46px into the air and expands big to catch the item, so intercept it at endY - 46!
+          const interceptY = endY - 46;
+
+          return (
+            <motion.div
+              key="flying-cart-item"
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: dishSize,
+                height: dishSize,
+                zIndex: 9999,
+                pointerEvents: 'none',
+                willChange: 'transform',
+                transformOrigin: 'center center',
+              }}
+              initial={{ 
+                x: startX - dishSize / 2, 
+                y: startY - dishSize / 2, 
+                scale: 1, 
+                opacity: 1,
+                rotate: 0
+              }}
+              animate={{ 
+                x: [
+                  startX - dishSize / 2, 
+                  midX - dishSize / 2, 
+                  endX - dishSize / 2
+                ],
+                y: [
+                  startY - dishSize / 2, 
+                  apexY - dishSize / 2, 
+                  interceptY - dishSize / 2
+                ], 
+                scale: [1, 0.92, 0.78, 0.58, 0.35, finalScale],
+                opacity: [1, 1, 1, 1, 1, 0], 
+                rotate: [0, 45, 130, 240, 360, 450]
+              }}
+              transition={{
+                duration: 1.0,
+                times: [0, 0.25, 0.52, 0.75, 0.90, 1],
+                ease: [0.2, 0.75, 0.25, 1]
+              }}
+              onAnimationComplete={() => {
+                setIsFlying(false);
+                setFlyStartCoords(null);
+                setFlyEndCoords(null);
+                setIsCartJumping(false);
+                
+                // Crisp physical cart catch impact and landing recoil
+                setIsCartVibrating(true);
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                  try {
+                    navigator.vibrate([60, 40, 60]);
+                  } catch (e) {}
+                }
+                setTimeout(() => setIsCartVibrating(false), 650);
+              }}
+            >
+              <div className="w-full h-full rounded-full overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,0.38)] ring-3 ring-white bg-white flex items-center justify-center">
+                <img 
+                  referrerPolicy="no-referrer"
+                  src={flyingImage}
+                  alt="Flying Dish"
+                  loading="eager"
+                  decoding="sync"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src.includes('/thumbs/')) {
+                      target.src = target.src.replace('/thumbs/', '/items/');
+                    }
+                  }}
+                  className="w-full h-full object-cover rounded-full pointer-events-none select-none"
+                />
+              </div>
+            </motion.div>
+          );
+        })()}
       </AnimatePresence>
     </div>
   );

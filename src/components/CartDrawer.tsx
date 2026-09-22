@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Minus, Plus, ShoppingBag, CreditCard, Banknote, Smartphone } from 'lucide-react';
 import type { CartItem } from '../types';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from "motion/react";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -63,11 +63,20 @@ export default function CartDrawer({ isOpen, onClose, items, setItems, onCheckou
               {items.map((item) => (
                 <div key={item.id} className="flex items-center gap-4 bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
                   <div className="w-20 h-20 flex-shrink-0">
-                    <img referrerPolicy="no-referrer" 
-                      src={item.image} 
+                    <img 
+                      referrerPolicy="no-referrer" 
+                      src={item.image.startsWith('/items/') ? item.image.replace('/items/', '/thumbs/') : item.image} 
                       alt={item.name} 
-                      className="w-full h-full object-cover drop-shadow-md"
-                      style={{ clipPath: 'circle(48% at 50% 50%)' }}
+                      decoding="async"
+                      loading="lazy"
+                      onError={(e) => {
+                        // Fallback to original image if thumb fails
+                        const target = e.currentTarget;
+                        if (target.src !== item.image) {
+                          target.src = item.image;
+                        }
+                      }}
+                      className="w-full h-full object-cover drop-shadow-md rounded-full"
                     />
                   </div>
                   <div className="flex-1">
@@ -115,12 +124,12 @@ export default function CartDrawer({ isOpen, onClose, items, setItems, onCheckou
                 </div>
                 <div className="flex justify-between text-xl font-bold text-slate-900 pt-4 border-t border-slate-100 mt-2">
                   <span>الإجمالي</span>
-                  <span className="text-[#FF5B2E]">{total.toFixed(0)} ج.م</span>
+                  <span className="text-[#0D1E3A]">{total.toFixed(0)} ج.م</span>
                 </div>
               </div>
               <button 
                 onClick={onCheckout}
-                className="w-full bg-[#FF5B2E] hover:bg-[#e0481d] text-white py-4 rounded-full font-black text-lg disabled:opacity-50 disabled:bg-slate-300 shadow-xl shadow-[#FF5B2E]/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                className="w-full bg-[#0D1E3A] hover:bg-[#1A3258] text-white py-4 rounded-full font-black text-lg disabled:opacity-50 disabled:bg-slate-300 shadow-xl shadow-slate-900/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 disabled={items.length === 0}
               >
                 <span>تأكيد الطلب</span>

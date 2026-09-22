@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from "motion/react";
 import { 
   X, Check, Phone, MapPin, Clock, CreditCard, Banknote, 
   Smartphone, Truck, ChevronLeft, AlertCircle, ShoppingBag, 
@@ -234,7 +234,7 @@ export default function OrderModal({
                       onClick={() => setPaymentMethod('cash')}
                       className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 text-center transition-all ${
                         paymentMethod === 'cash'
-                          ? 'border-[#FF5B2E] bg-[#FF5B2E]/5 text-[#FF5B2E] font-black'
+                          ? 'border-[#0D1E3A] bg-[#0D1E3A]/10 text-[#0D1E3A] font-black shadow-xs'
                           : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 font-bold'
                       }`}
                     >
@@ -247,7 +247,7 @@ export default function OrderModal({
                       onClick={() => setPaymentMethod('vodafone')}
                       className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 text-center transition-all ${
                         paymentMethod === 'vodafone'
-                          ? 'border-[#FF5B2E] bg-[#FF5B2E]/5 text-[#FF5B2E] font-black'
+                          ? 'border-[#0D1E3A] bg-[#0D1E3A]/10 text-[#0D1E3A] font-black shadow-xs'
                           : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 font-bold'
                       }`}
                     >
@@ -260,7 +260,7 @@ export default function OrderModal({
                       onClick={() => setPaymentMethod('card')}
                       className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 text-center transition-all ${
                         paymentMethod === 'card'
-                          ? 'border-[#FF5B2E] bg-[#FF5B2E]/5 text-[#FF5B2E] font-black'
+                          ? 'border-[#0D1E3A] bg-[#0D1E3A]/10 text-[#0D1E3A] font-black shadow-xs'
                           : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 font-bold'
                       }`}
                     >
