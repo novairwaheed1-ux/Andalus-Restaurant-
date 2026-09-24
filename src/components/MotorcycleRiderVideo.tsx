@@ -260,7 +260,7 @@ export default function MotorcycleRiderVideo({
       <header className="relative z-30 pt-8 sm:pt-10 flex flex-col items-center text-center px-4 pointer-events-none">
         <div className="inline-flex items-center gap-3 bg-slate-900/85 backdrop-blur-xl border border-slate-700/70 px-5 py-2.5 rounded-full text-white text-xs sm:text-sm font-black shadow-2xl">
           <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping" />
-          <span>خدمة دليفري ديروط السريعة 🛵</span>
+          <span>خدمة دليفري ديروط السريعة</span>
           <span className="bg-[#E53935] text-white text-[10px] font-black px-2.5 py-0.5 rounded-full">Parcel</span>
         </div>
       </header>

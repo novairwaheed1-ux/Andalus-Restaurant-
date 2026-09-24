@@ -3,6 +3,8 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   FacebookAuthProvider,
+  GithubAuthProvider,
+  OAuthProvider,
   signInWithPopup, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -28,6 +30,7 @@ const firebaseConfig = {
 
 const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth: Auth = getAuth(app);
+
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account'
@@ -37,6 +40,12 @@ export const facebookProvider = new FacebookAuthProvider();
 facebookProvider.setCustomParameters({
   display: 'popup'
 });
+
+export const githubProvider = new GithubAuthProvider();
+
+export const appleProvider = new OAuthProvider('apple.com');
+appleProvider.addScope('email');
+appleProvider.addScope('name');
 
 export { 
   signInWithPopup, 

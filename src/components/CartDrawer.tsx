@@ -81,8 +81,15 @@ export default function CartDrawer({ isOpen, onClose, items, setItems, onCheckou
                   </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-slate-900 text-[15px] leading-tight mb-1">{item.name}</h3>
-                    <p className="text-[11px] text-slate-500 mb-2 line-clamp-1">{item.sizeName}</p>
-                    <p className="font-bold text-lg text-[#FF5B2E]">{(item.price * item.quantity).toFixed(0)} ج.م</p>
+                    <div className="text-[11px] text-slate-500 mb-1.5">
+                      <span>{item.sizeName}</span>
+                      {item.toppings && item.toppings.length > 0 && (
+                        <div className="text-amber-700 font-bold text-[10px] mt-0.5">
+                          إضافات: {item.toppings.join(' • ')}
+                        </div>
+                      )}
+                    </div>
+                    <p className="font-bold text-lg text-[#0D1E3A]">{(item.price * item.quantity).toFixed(0)} ج.م</p>
                   </div>
                   <div className="flex flex-col items-center gap-2 bg-slate-50 p-1 rounded-full border border-slate-100">
                     <button 

@@ -70,28 +70,34 @@ export const CATEGORIES: Category[] = [
 
 export const TOPPINGS: Topping[] = [
   {
-    "id": "cheese",
-    "name": "موتزاريلا",
-    "price": 15,
-    "icon": "🧀"
+    id: "cheese",
+    name: "جبنة موتزاريلا إكسترا",
+    price: 20,
+    icon: "/toppings/melted-cheese-3d.webp"
   },
   {
-    "id": "mushroom",
-    "name": "مشروم",
-    "price": 10,
-    "icon": "🍄"
+    id: "meat",
+    name: "لحمة مفرومة بلدي",
+    price: 25,
+    icon: "/toppings/minced-meat-3d.webp"
   },
   {
-    "id": "meat",
-    "name": "لحم مفروم",
-    "price": 20,
-    "icon": "🥩"
+    id: "olive",
+    name: "شرائح زيتون مخلي",
+    price: 10,
+    icon: "/toppings/sliced-olives-3d.webp"
   },
   {
-    "id": "olive",
-    "name": "زيتون",
-    "price": 5,
-    "icon": "🫒"
+    id: "mixcheese",
+    name: "مكس أجبان فاخر",
+    price: 25,
+    icon: "/items/it-mixcheese.webp"
+  },
+  {
+    id: "sauce_ranch",
+    name: "صوص رانش فاخر",
+    price: 15,
+    icon: "/items/it-ranch.webp"
   }
 ];
 

@@ -42,4 +42,32 @@ export interface CartItem {
   sizeName: string;
   image: string;
   description: string;
+  toppings?: string[];
+}
+
+export interface OrderItemDetail {
+  name: string;
+  quantity: number;
+  price: number;
+  sizeName: string;
+  toppings?: string[];
+}
+
+export interface OrderRecord {
+  id: string;
+  orderNumber: number;
+  createdAt: string;
+  formattedDate: string;
+  items: OrderItemDetail[];
+  itemsCount: number;
+  subtotal: number;
+  deliveryFee: number;
+  grandTotal: number;
+  status: 'received' | 'preparing' | 'on_the_way' | 'delivered';
+  customerName: string;
+  phone: string;
+  address: string;
+  paymentMethod: string;
+  userEmail?: string;
+  isGuest?: boolean;
 }

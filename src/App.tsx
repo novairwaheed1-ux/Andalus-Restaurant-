@@ -2,13 +2,16 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { CATEGORIES, MENU_ITEMS } from './data/menuData';
 import type { MenuItem, CartItem } from './types';
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, Grid, Home, Package, ShoppingBag, User, MapPin, ChevronDown, Bell, Phone, LogIn } from 'lucide-react';
+import { Plus, Grid, Home, ShoppingBag, User, MapPin, ChevronDown, Bell, Phone, LogIn, ClipboardCheck } from 'lucide-react';
 import MenuCard from './components/MenuCard';
 import DishDetailModal from './components/DishDetailModal';
 import CartDrawer from './components/CartDrawer';
 import LoginModal, { type UserProfile } from './components/LoginModal';
 import OrderModal from './components/OrderModal';
+import CinematicIntroSplash from './components/CinematicIntroSplash';
+import IngredientDropSplash, { type SplashTrigger } from './components/IngredientDropSplash';
 import { auth, onAuthStateChanged, fbSignOut } from './lib/firebase';
+import { getStoredOrders } from './utils/orderStorage';
 
 export default function App() {
   const [activeCategory, setActiveCategory] = useState('all');
@@ -17,41 +20,40 @@ export default function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   
-  // Login & Order Modals State - Persistent login so the user is never kicked out
+  // Cinematic Entrance Splash (Soft, luxury, parting animation)
+  const [isIntroActive, setIsIntroActive] = useState(true);
+
+  // Optional Login State (Google only, opens only when user clicks avatar or requests it)
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
     try {
-      const saved = localStorage.getItem('andalus_current_user');
+      const saved = localStorage.getItem('andalus_auth_token');
       if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && parsed.isLoggedIn) return parsed;
+        const parsed = JSON.parse(atob(saved));
+        const cleanName = (parsed.name && !parsed.name.includes('@')) ? parsed.name : '';
+        return {
+          name: cleanName,
+          email: parsed.email || '',
+          provider: parsed.provider || 'google',
+          isLoggedIn: true,
+        };
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch {}
     return null;
   });
-
-  // Login modal toggle
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
-  // Synchronize with real Firebase Authentication state
+  // Keep Firebase Auth in sync automatically
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
-      if (fbUser) {
-        const user: UserProfile = {
-          name: fbUser.displayName || fbUser.email?.split('@')[0] || 'مستخدم Google',
-          email: fbUser.email || '',
-          avatar: fbUser.photoURL || undefined,
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const cleanName = (user.displayName && !user.displayName.includes('@')) ? user.displayName : '';
+        setCurrentUser({
+          name: cleanName,
+          email: user.email || '',
+          avatar: user.photoURL || undefined,
+          provider: 'google',
           isLoggedIn: true,
-          rememberMe: true,
-        };
-        setCurrentUser(user);
-        try {
-          localStorage.setItem('andalus_current_user', JSON.stringify(user));
-        } catch (e) {
-          console.error(e);
-        }
-        setIsLoginOpen(false);
+        });
       }
     });
     return () => unsubscribe();
@@ -59,25 +61,32 @@ export default function App() {
 
   const handleLoginSuccess = useCallback((user: UserProfile) => {
     setCurrentUser(user);
-    try {
-      localStorage.setItem('andalus_current_user', JSON.stringify(user));
-    } catch (e) {
-      console.error(e);
-    }
     setIsLoginOpen(false);
   }, []);
 
   const handleLogout = useCallback(() => {
+    try {
+      localStorage.removeItem('andalus_auth_token');
+    } catch {}
     fbSignOut(auth).catch(() => {});
     setCurrentUser(null);
-    try {
-      localStorage.removeItem('andalus_current_user');
-    } catch (e) {
-      console.error(e);
-    }
-    setIsLoginOpen(true);
+    setIsLoginOpen(false);
   }, []);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [orderModalStep, setOrderModalStep] = useState<'checkout' | 'tracking'>('checkout');
+  const [hasActiveOrder, setHasActiveOrder] = useState(false);
+
+  useEffect(() => {
+    const checkActiveOrders = () => {
+      try {
+        const orders = getStoredOrders();
+        setHasActiveOrder(orders.length > 0);
+      } catch {}
+    };
+    checkActiveOrders();
+    window.addEventListener('storage', checkActiveOrders);
+    return () => window.removeEventListener('storage', checkActiveOrders);
+  }, [isOrderModalOpen]);
   
   // Animation coordinates, cart jump and realistic physical vibration state
   const [flyStartCoords, setFlyStartCoords] = useState<{x: number, y: number, size?: number} | null>(null);
@@ -86,6 +95,7 @@ export default function App() {
   const [flyingImage, setFlyingImage] = useState('');
   const [isCartJumping, setIsCartJumping] = useState(false);
   const [isCartVibrating, setIsCartVibrating] = useState(false);
+  const [splashTriggers, setSplashTriggers] = useState<SplashTrigger[]>([]);
   const jumpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const filteredItems = useMemo(() => {
@@ -121,6 +131,14 @@ export default function App() {
       endY = rect.top + rect.height / 2;
     }
     
+    // Trigger immersive Pizza Ingredient Drop Splash at the dish origin
+    const originSplash: SplashTrigger = {
+      id: Math.random().toString(36).substr(2, 9),
+      x: startX,
+      y: startY,
+    };
+    setSplashTriggers(prev => [...prev, originSplash]);
+
     // Prefer pre-cached thumbnail or currently loaded image src so image displays instantly with 0 decoding latency
     const resolvedImg = customImg || (item.image.startsWith('/items/') ? item.image.replace('/items/', '/thumbs/') : item.image);
     setFlyingImage(resolvedImg);
@@ -130,11 +148,23 @@ export default function App() {
     setIsCartJumping(false);
     setIsCartVibrating(false);
 
-    // After 580ms of flight (in total 1.0s animation), the cart leaps up and grows big to catch the incoming dish!
+    // After 520ms of flight, the cart leaps up and catches the dish, then smoothly returns
     if (jumpTimerRef.current) clearTimeout(jumpTimerRef.current);
     jumpTimerRef.current = setTimeout(() => {
       setIsCartJumping(true);
-    }, 580);
+
+      // Auto-return safety timer: cart can NEVER stay stuck in mid-air
+      setTimeout(() => {
+        setIsCartJumping(false);
+      }, 380);
+    }, 520);
+    
+    // Master animation cleanup safety timer
+    setTimeout(() => {
+      setIsFlying(false);
+      setIsCartJumping(false);
+      setIsCartVibrating(false);
+    }, 1100);
     
     // Close modal immediately so there are no heavy layout/re-render spikes mid-flight
     setSelectedItem(null);
@@ -165,6 +195,28 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Order Confirmation & Receipt Icon */}
+              <button 
+                onClick={() => {
+                  setOrderModalStep('tracking');
+                  setIsOrderModalOpen(true);
+                }}
+                className={`h-10 px-3 rounded-full border flex items-center gap-1.5 transition-all active:scale-95 shadow-xs cursor-pointer ${
+                  hasActiveOrder 
+                    ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300 hover:bg-emerald-500/30' 
+                    : 'bg-white/10 hover:bg-white/20 border-white/20 text-white'
+                }`}
+                title="تأكيد واستلام الأوردر"
+              >
+                <ClipboardCheck className={`w-4 h-4 ${hasActiveOrder ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`} />
+                <span className="text-xs font-black hidden sm:inline">
+                  {hasActiveOrder ? 'تتبع واستلام الأوردر' : 'استلام الأوردر'}
+                </span>
+                {hasActiveOrder && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+                )}
+              </button>
+
               <a 
                 href="tel:01008141062" 
                 className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white transition-colors active:scale-95 shadow-xs"
@@ -201,7 +253,7 @@ export default function App() {
 
           {/* Headline */}
           <h1 className="text-[25px] sm:text-[29px] font-black text-white tracking-tight leading-snug mb-4">
-            جعان يا صحبي؟ <span className="text-amber-400">اطلب واستمتع 🍕</span>
+            جعان يا صحبي؟ <span className="text-amber-400">اطلب واستمتع</span>
           </h1>
 
           {/* Category Circles */}
@@ -251,7 +303,6 @@ export default function App() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2 tracking-tight">
             <span>الأكثر طلباً</span>
-            <span className="text-lg">🔥</span>
           </h2>
           <span className="text-xs font-black text-[#0D1E3A] bg-blue-50/80 border border-blue-200/80 px-3.5 py-1.5 rounded-full shadow-xs">
             {filteredItems.length} صنف جاهز للطلب
@@ -294,54 +345,70 @@ export default function App() {
         </div>
       </main>
 
-      {/* Floating Bottom Nav - Identical on Mobile, iPad, Laptop */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[380px] bg-[#0D1E3A] px-8 py-4 rounded-[40px] flex items-center justify-between shadow-2xl shadow-slate-950/40 z-[150] border border-white/10">
+      {/* Floating Bottom Nav - 4 Key Luxury Actions */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-36px)] max-w-[380px] bg-[#0D1E3A] px-6 py-3.5 rounded-[40px] flex items-center justify-between shadow-2xl shadow-slate-950/40 z-[150] border border-white/10 transform-gpu">
+        {/* 1. Home */}
         <button 
           onClick={() => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className="text-amber-400 transition-colors relative flex flex-col items-center"
+          className="text-amber-400 transition-colors relative flex flex-col items-center cursor-pointer p-1"
           title="الرئيسية"
         >
-          <Home className="w-6 h-6" />
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-amber-400 rounded-full"></div>
+          <Home className="w-5.5 h-5.5" />
+          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-amber-400 rounded-full"></div>
         </button>
 
-        {/* Orders & Live Tracking Button (Replacing Heart) */}
+        {/* 2. Order Confirmation & Tracking Icon */}
         <button 
-          onClick={() => setIsOrderModalOpen(true)}
-          className="text-slate-400 hover:text-white transition-colors relative active:scale-90"
-          title="تتبع الطلب والأوردرات"
+          onClick={() => {
+            setOrderModalStep('tracking');
+            setIsOrderModalOpen(true);
+          }}
+          className="text-slate-300 hover:text-white transition-colors relative flex flex-col items-center cursor-pointer p-1 active:scale-90"
+          title="تأكيد واستلام الأوردر"
         >
-          <Package className="w-6 h-6" />
+          <div className="relative">
+            <ClipboardCheck className={`w-5.5 h-5.5 transition-colors ${hasActiveOrder ? 'text-emerald-400' : 'text-slate-300'}`} />
+            {hasActiveOrder && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-[#0D1E3A] animate-pulse" />
+            )}
+          </div>
+          <span className="text-[9.5px] font-black mt-0.5 tracking-tight text-slate-300 whitespace-nowrap">
+            استلام الأوردر
+          </span>
         </button>
 
-        {/* Cart Button with Mid-Air Jump & Catch */}
+        {/* 3. Cart Button with Mid-Air Jump & Catch */}
         <button 
-          className="text-slate-400 hover:text-white transition-colors relative cart-icon-target active:scale-90"
-          onClick={() => setIsCartOpen(true)}
+          className="text-slate-400 hover:text-white transition-colors relative cart-icon-target active:scale-90 cursor-pointer p-1 flex flex-col items-center"
+          onClick={() => {
+            setIsCartJumping(false);
+            setIsCartVibrating(false);
+            setIsCartOpen(true);
+          }}
           title="سلة المشتريات"
         >
           {/* Catch Ripple Burst when dish lands */}
           {isCartVibrating && (
-            <span className="absolute -inset-4 rounded-full bg-amber-400/70 animate-ping pointer-events-none" />
+            <span className="absolute -inset-3 rounded-full bg-amber-400/60 animate-ping pointer-events-none" />
           )}
 
-          {/* Jump Aura when cart leaps into the air and grows big */}
+          {/* Jump Aura when cart leaps to catch dish */}
           {isCartJumping && (
-            <span className="absolute -inset-3.5 rounded-full bg-amber-400/50 animate-pulse pointer-events-none" />
+            <span className="absolute -inset-2.5 rounded-full bg-amber-400/40 animate-pulse pointer-events-none" />
           )}
 
           <motion.div
             animate={
               isCartVibrating ? { 
-                y: [-46, -48, 5, -2, 0],
-                scale: [2.1, 2.35, 0.85, 1.25, 0.95, 1],
-                rotate: [-10, 14, -8, 4, 0]
+                y: [0, -10, 3, -1, 0],
+                scale: [1, 1.35, 0.95, 1.1, 1],
+                rotate: [-6, 8, -4, 2, 0]
               } : isCartJumping ? {
-                y: -46,
-                scale: 2.1,
-                rotate: -10
+                y: -24,
+                scale: 1.45,
+                rotate: -6
               } : { 
                 y: 0, 
                 scale: 1, 
@@ -350,43 +417,48 @@ export default function App() {
             }
             transition={
               isCartVibrating ? { 
-                duration: 0.65, 
+                duration: 0.5, 
                 ease: "easeOut"
               } : isCartJumping ? {
                 type: "spring",
-                stiffness: 450,
-                damping: 15
+                stiffness: 420,
+                damping: 18
               } : { 
-                duration: 0.25 
+                type: "spring",
+                stiffness: 350,
+                damping: 22
               }
             }
             className="relative will-change-transform"
           >
-            <ShoppingBag className={`w-6 h-6 transition-colors duration-150 ${
+            <ShoppingBag className={`w-5.5 h-5.5 transition-colors duration-150 ${
               isCartJumping || isCartVibrating 
-                ? 'text-amber-400 drop-shadow-[0_0_18px_rgba(251,191,36,1)] scale-110' 
+                ? 'text-amber-400 drop-shadow-[0_0_14px_rgba(251,191,36,0.9)]' 
                 : ''
             }`} />
             {cartItemCount > 0 && (
               <motion.span 
-                animate={isCartVibrating ? { scale: [1, 2.2, 1.15], y: [-8, 0] } : isCartJumping ? { scale: 1.3 } : { scale: 1, y: 0 }}
-                transition={{ duration: 0.45 }}
+                animate={isCartVibrating ? { scale: [1, 1.5, 1.1], y: [-4, 0] } : isCartJumping ? { scale: 1.2 } : { scale: 1, y: 0 }}
+                transition={{ duration: 0.35 }}
                 className="absolute -top-1.5 -right-2 bg-amber-400 text-[#0D1E3A] text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-md"
               >
                 {cartItemCount}
               </motion.span>
             )}
           </motion.div>
+          <span className="text-[9.5px] font-black mt-0.5 tracking-tight text-slate-400">
+            السلة
+          </span>
         </button>
 
-        {/* User Profile & Login Button */}
+        {/* 4. User Profile & Login Button */}
         <button 
           onClick={() => setIsLoginOpen(true)}
-          className="text-slate-400 hover:text-white transition-colors relative active:scale-90"
+          className="text-slate-400 hover:text-white transition-colors relative active:scale-90 p-1 flex flex-col items-center cursor-pointer"
           title={currentUser?.isLoggedIn ? `حسابي (${currentUser.name})` : "تسجيل الدخول"}
         >
           {currentUser?.isLoggedIn ? (
-            <div className="relative w-6 h-6 rounded-full overflow-hidden border border-amber-400">
+            <div className="relative w-5.5 h-5.5 rounded-full overflow-hidden border border-amber-400">
               {currentUser.avatar ? (
                 <img 
                   referrerPolicy="no-referrer"
@@ -402,8 +474,11 @@ export default function App() {
               <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border border-black" />
             </div>
           ) : (
-            <User className="w-6 h-6" />
+            <User className="w-5.5 h-5.5" />
           )}
+          <span className="text-[9.5px] font-black mt-0.5 tracking-tight text-slate-400">
+            حسابي
+          </span>
         </button>
       </div>
 
@@ -411,6 +486,7 @@ export default function App() {
       <AnimatePresence>
         {selectedItem && (
           <DishDetailModal 
+            key={selectedItem.id}
             item={selectedItem} 
             onClose={() => {
               setSelectedItem(null);
@@ -433,7 +509,7 @@ export default function App() {
         }}
       />
 
-      {/* Login & Profile Modal */}
+      {/* Optional Login & Profile Modal (Google Only, opens on demand) */}
       <LoginModal 
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
@@ -442,113 +518,110 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      {/* Order Confirmation & Live Tracking Modal for 'يقين الاوردر' */}
+      {/* Luxury Cinematic Parting Entrance Splash */}
+      {isIntroActive && (
+        <CinematicIntroSplash 
+          onComplete={() => setIsIntroActive(false)} 
+        />
+      )}
+
+      {/* Order Confirmation & Live Tracking Modal for 'تأكيد واستلام الأوردر' */}
       <OrderModal 
         isOpen={isOrderModalOpen}
         onClose={() => setIsOrderModalOpen(false)}
         items={cartItems}
         currentUser={currentUser}
+        initialStep={orderModalStep}
         onOrderCompleted={() => {
           setCartItems([]);
+          setHasActiveOrder(true);
         }}
       />
 
       {/* Fly to Cart Animation - Exactly 1.0s duration, shrinking gradually step-by-step ("سنة سنة") while cart leaps high and expands to catch it */}
       <AnimatePresence>
-        {isFlying && flyStartCoords && flyEndCoords && (() => {
-          const startX = flyStartCoords.x;
-          const startY = flyStartCoords.y;
-          const dishSize = flyStartCoords.size || 150;
-          const endX = flyEndCoords.x;
-          const endY = flyEndCoords.y;
-          
-          // Parabolic curve apex (lifts up prominently over the dish before plunging)
-          const midX = startX + (endX - startX) * 0.45;
-          const apexY = Math.min(startY, endY) - 95;
-
-          // Target final scale so it shrinks right into the cart opening (~24px)
-          const finalScale = Math.max(0.09, 24 / dishSize);
-
-          // The cart leaps 46px into the air and expands big to catch the item, so intercept it at endY - 46!
-          const interceptY = endY - 46;
-
-          return (
-            <motion.div
-              key="flying-cart-item"
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: dishSize,
-                height: dishSize,
-                zIndex: 9999,
-                pointerEvents: 'none',
-                willChange: 'transform',
-                transformOrigin: 'center center',
-              }}
-              initial={{ 
-                x: startX - dishSize / 2, 
-                y: startY - dishSize / 2, 
-                scale: 1, 
-                opacity: 1,
-                rotate: 0
-              }}
-              animate={{ 
-                x: [
-                  startX - dishSize / 2, 
-                  midX - dishSize / 2, 
-                  endX - dishSize / 2
-                ],
-                y: [
-                  startY - dishSize / 2, 
-                  apexY - dishSize / 2, 
-                  interceptY - dishSize / 2
-                ], 
-                scale: [1, 0.92, 0.78, 0.58, 0.35, finalScale],
-                opacity: [1, 1, 1, 1, 1, 0], 
-                rotate: [0, 45, 130, 240, 360, 450]
-              }}
-              transition={{
-                duration: 1.0,
-                times: [0, 0.25, 0.52, 0.75, 0.90, 1],
-                ease: [0.2, 0.75, 0.25, 1]
-              }}
-              onAnimationComplete={() => {
-                setIsFlying(false);
-                setFlyStartCoords(null);
-                setFlyEndCoords(null);
-                setIsCartJumping(false);
-                
-                // Crisp physical cart catch impact and landing recoil
-                setIsCartVibrating(true);
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-                  try {
-                    navigator.vibrate([60, 40, 60]);
-                  } catch (e) {}
-                }
-                setTimeout(() => setIsCartVibrating(false), 650);
-              }}
-            >
-              <div className="w-full h-full rounded-full overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,0.38)] ring-3 ring-white bg-white flex items-center justify-center">
-                <img 
-                  referrerPolicy="no-referrer"
-                  src={flyingImage}
-                  alt="Flying Dish"
-                  loading="eager"
-                  decoding="sync"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    if (target.src.includes('/thumbs/')) {
-                      target.src = target.src.replace('/thumbs/', '/items/');
-                    }
-                  }}
-                  className="w-full h-full object-cover rounded-full pointer-events-none select-none"
-                />
-              </div>
-            </motion.div>
-          );
-        })()}
+        {isFlying && flyStartCoords && flyEndCoords && (
+          <motion.div
+            key="flying-cart-item"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: flyStartCoords.size || 150,
+              height: flyStartCoords.size || 150,
+              zIndex: 9999,
+              pointerEvents: 'none',
+              willChange: 'transform',
+              transformOrigin: 'center center',
+            }}
+            initial={{ 
+              x: flyStartCoords.x - (flyStartCoords.size || 150) / 2, 
+              y: flyStartCoords.y - (flyStartCoords.size || 150) / 2, 
+              scale: 1, 
+              opacity: 1, 
+              rotate: 0 
+            }}
+            animate={{ 
+              x: [
+                flyStartCoords.x - (flyStartCoords.size || 150) / 2, 
+                (flyStartCoords.x + (flyEndCoords.x - flyStartCoords.x) * 0.45) - (flyStartCoords.size || 150) / 2, 
+                flyEndCoords.x - (flyStartCoords.size || 150) / 2
+              ],
+              y: [
+                flyStartCoords.y - (flyStartCoords.size || 150) / 2, 
+                (Math.min(flyStartCoords.y, flyEndCoords.y) - 95) - (flyStartCoords.size || 150) / 2, 
+                (flyEndCoords.y - 46) - (flyStartCoords.size || 150) / 2
+              ], 
+              scale: [1, 0.92, 0.78, 0.58, 0.35, Math.max(0.09, 24 / (flyStartCoords.size || 150))],
+              opacity: [1, 1, 1, 1, 1, 0], 
+              rotate: [0, 45, 130, 240, 360, 450]
+            }}
+            transition={{
+              duration: 1.0,
+              times: [0, 0.25, 0.52, 0.75, 0.90, 1],
+              ease: [0.2, 0.75, 0.25, 1]
+            }}
+            onAnimationComplete={() => {
+              setIsFlying(false);
+              setFlyStartCoords(null);
+              setFlyEndCoords(null);
+              setIsCartJumping(false);
+              
+              // Crisp physical cart catch impact and landing recoil
+              setIsCartVibrating(true);
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                try {
+                  navigator.vibrate([60, 40, 60]);
+                } catch (e) {}
+              }
+              setTimeout(() => setIsCartVibrating(false), 650);
+            }}
+          >
+            <div className="w-full h-full rounded-full overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,0.38)] ring-3 ring-white bg-white flex items-center justify-center">
+              <img 
+                referrerPolicy="no-referrer"
+                src={flyingImage}
+                alt="Flying Dish"
+                loading="eager"
+                decoding="sync"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (target.src.includes('/thumbs/')) {
+                    target.src = target.src.replace('/thumbs/', '/items/');
+                  }
+                }}
+                className="w-full h-full object-cover rounded-full pointer-events-none select-none"
+              />
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
+
+      {/* Immersive Pizza Ingredient Drop Splash Particles */}
+      <IngredientDropSplash
+        splashTriggers={splashTriggers}
+        onComplete={(id) => setSplashTriggers((prev) => prev.filter((t) => t.id !== id))}
+      />
     </div>
   );
 }
