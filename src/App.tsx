@@ -29,10 +29,11 @@ export default function App() {
       const saved = localStorage.getItem('andalus_auth_token');
       if (saved) {
         const parsed = JSON.parse(atob(saved));
-        const cleanName = (parsed.name && !parsed.name.includes('@')) ? parsed.name : '';
+        const cleanName = parsed.name || (parsed.email ? parsed.email.split('@')[0] : 'عميل الأندلس');
         return {
           name: cleanName,
           email: parsed.email || '',
+          avatar: parsed.avatar || undefined,
           provider: parsed.provider || 'google',
           isLoggedIn: true,
         };
