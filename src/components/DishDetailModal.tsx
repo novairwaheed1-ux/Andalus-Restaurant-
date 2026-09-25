@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   ChevronRight, Star, Minus, Plus, ShoppingBag, Check, Utensils, 
-  Sparkles, ZoomIn, ZoomOut, Eye, X, Move
+  Sparkles, X
 } from 'lucide-react';
 import type { MenuItem, SizeOption, CartItem } from '../types';
 import { motion, AnimatePresence } from "motion/react";
@@ -16,51 +16,6 @@ interface DishDetailModalProps {
   onAdd: (item: CartItem, startX: number, startY: number, startSize?: number, customImg?: string) => void;
 }
 
-// High-quality ingredient macro inspection hotspots
-interface IngredientHotspot {
-  id: string;
-  name: string;
-  tag: string;
-  description: string;
-  xPercent: number; // 0 to 100
-  yPercent: number;
-}
-
-const INGREDIENT_HOTSPOTS: IngredientHotspot[] = [
-  {
-    id: 'cheese',
-    name: 'جبنة موتزاريلا سايحة ومحمصة',
-    tag: 'موتزاريلا طبيعية 100%',
-    description: 'طبقة كريمية مطاطية غنية بفقاعات الشواء الذهبية ونكهة غنية ذائبة بامتياز.',
-    xPercent: 38,
-    yPercent: 42,
-  },
-  {
-    id: 'herbs',
-    name: 'أعشاب وزعتر بري إيطالي',
-    tag: 'أعشاب طازجة منتقاة',
-    description: 'مزيج عطري من الزعتر البري المجفف وأوراق الريحان الفواحة تمنح الطبق رائحة الشواء الإيطالي.',
-    xPercent: 64,
-    yPercent: 32,
-  },
-  {
-    id: 'fillings',
-    name: 'حشو بلدي متبل وغني',
-    tag: 'تسوية شواء متقنة',
-    description: 'قطع حشو طرية عصارية متبلة بأسرار خلطة الأندلس الخاصة لضمان مذاق عميق في كل قضمة.',
-    xPercent: 46,
-    yPercent: 68,
-  },
-  {
-    id: 'crust',
-    name: 'أطراف العجينة الهشة المقرمشة',
-    tag: 'تخمير بطيء 24 ساعة',
-    description: 'أطراف ذهبية مقرمشة من الخارج وهشة كالقطن من الداخل بخبز متقن على أعلى درجات الحرارة.',
-    xPercent: 82,
-    yPercent: 55,
-  },
-];
-
 export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModalProps) {
   const [selectedSize, setSelectedSize] = useState<SizeOption>(
     item.sizes[0] || { id: 'medium', name: 'وسط', price: item.defaultPrice }
@@ -71,12 +26,6 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
   const [rotation, setRotation] = useState(0);
   const [hasLanded, setHasLanded] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
-
-  // 3D Macro View States
-  const [isMacroMode, setIsMacroMode] = useState(false);
-  const [macroZoom, setMacroZoom] = useState(2.6);
-  const [activeHotspotId, setActiveHotspotId] = useState<string | null>('cheese');
-  const [macroPan, setMacroPan] = useState({ x: 12, y: 8 });
 
   // Smart check: Can this item accept savory toppings (cheese, olives, meat)?
   const canAcceptToppings = useMemo(() => isSavoryDishForToppings(item), [item]);
@@ -92,7 +41,6 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
   const plateContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // If dish cannot take savory toppings, clear any toppings
     if (!canAcceptToppings) {
       setSelectedToppings([]);
     }
@@ -177,19 +125,6 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
     }
   };
 
-  // Macro Hotspot selection handler
-  const handleSelectHotspot = useCallback((spot: IngredientHotspot) => {
-    setActiveHotspotId(spot.id);
-    // Pan toward the hotspot: center is (50, 50)
-    const panX = (50 - spot.xPercent) * 2.2;
-    const panY = (50 - spot.yPercent) * 2.2;
-    setMacroPan({ x: panX, y: panY });
-  }, []);
-
-  const activeHotspot = useMemo(() => {
-    return INGREDIENT_HOTSPOTS.find(h => h.id === activeHotspotId) || INGREDIENT_HOTSPOTS[0];
-  }, [activeHotspotId]);
-
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isAdding) return;
@@ -260,87 +195,31 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
             <ChevronRight className="w-5 h-5" />
           </button>
           
-          {/* Macro View 3D Toggle Button */}
-          <button
-            onClick={() => {
-              setIsMacroMode(prev => !prev);
-              if (!isMacroMode) {
-                handleSelectHotspot(INGREDIENT_HOTSPOTS[0]);
-              }
-            }}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-black flex items-center gap-2 transition-all cursor-pointer shadow-xs active:scale-95 ${
-              isMacroMode 
-                ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-amber-400/30' 
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
-            }`}
-          >
-            {isMacroMode ? (
-              <>
-                <ZoomOut className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>إغلاق الماكرو</span>
-              </>
-            ) : (
-              <>
-                <Eye className="w-3.5 h-3.5 text-amber-600 stroke-[2.5]" />
-                <span>فحص المكونات ماكرو 3D</span>
-              </>
-            )}
-          </button>
+          <div className="text-xs font-bold text-slate-400">
+            تفاصيل الوجبة
+          </div>
         </div>
 
         {/* Scrollable Content */}
         <div className="overflow-y-auto px-6 pt-1 pb-6 flex-1 no-scrollbar">
           
-          {/* Prominent Centered Food Plate Section with Macro 3D Zoom Capability */}
+          {/* Prominent Centered Food Plate Section */}
           <div className="flex flex-col items-center justify-center my-3 relative">
             
-            {/* Ambient Circular Plate / Macro Viewport */}
+            {/* Ambient Circular Plate */}
             <div 
               ref={plateContainerRef}
-              className={`rounded-full relative p-2 shadow-inner transition-all duration-300 flex items-center justify-center overflow-hidden ${
-                isMacroMode 
-                  ? 'w-72 h-72 sm:w-80 sm:h-80 bg-slate-950 ring-4 ring-amber-400 shadow-[0_12px_36px_rgba(0,0,0,0.5)]' 
-                  : 'w-48 h-48 sm:w-56 sm:h-56 bg-slate-100'
-              }`}
+              className="w-48 h-48 sm:w-56 sm:h-56 rounded-full relative p-2 bg-slate-100 shadow-inner flex items-center justify-center overflow-hidden"
             >
-              {/* Macro 3D Viewfinder HUD Ring */}
-              {isMacroMode && (
-                <div className="absolute inset-0 pointer-events-none z-40 rounded-full border-2 border-amber-400/30 flex flex-col justify-between p-3">
-                  <div className="flex justify-between items-center text-[10px] font-mono text-amber-300 font-bold px-2">
-                    <span>3D MACRO LENS</span>
-                    <span>{macroZoom}X ZOOM</span>
-                  </div>
-                  <div className="flex justify-center">
-                    <div className="text-[10px] bg-black/60 backdrop-blur-xs text-amber-200 px-2.5 py-0.5 rounded-full border border-amber-400/30 flex items-center gap-1.5">
-                      <Move className="w-3 h-3 text-amber-400" />
-                      <span>انقر على النقاط لفحص النسيج</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Food Image + 3D Overlay Container */}
+              {/* Food Image */}
               <motion.div
                 className="relative w-full h-full flex items-center justify-center will-change-transform"
-                animate={
-                  isMacroMode
-                    ? {
-                        scale: macroZoom,
-                        x: macroPan.x,
-                        y: macroPan.y,
-                        rotate: 0,
-                      }
-                    : {
-                        scale: imageScale,
-                        x: 0,
-                        y: 0,
-                        rotate: hasLanded ? rotation : 360,
-                      }
-                }
+                animate={{
+                  scale: imageScale,
+                  rotate: hasLanded ? rotation : 360,
+                }}
                 transition={{
                   scale: { type: 'spring', damping: 24, stiffness: 220, mass: 0.7 },
-                  x: { type: 'spring', damping: 26, stiffness: 200 },
-                  y: { type: 'spring', damping: 26, stiffness: 200 },
                   rotate: { duration: 0.35, ease: [0.25, 1, 0.5, 1] },
                 }}
               >
@@ -361,95 +240,15 @@ export default function DishDetailModal({ item, onClose, onAdd }: DishDetailModa
                   />
                 )}
 
-                {/* 3D Realistic Toppings Overlay (Photorealistic molten mozzarella, baladi meat, olives) */}
+                {/* Toppings Micro Feedback (Non-intrusive rim ring & transient sparkle) */}
                 {canAcceptToppings && (
                   <RealisticToppingsOverlay selectedToppings={selectedToppings} />
-                )}
-
-                {/* Interactive Macro Hotspot Pins on Food Surface */}
-                {isMacroMode && (
-                  <div className="absolute inset-0 pointer-events-auto">
-                    {INGREDIENT_HOTSPOTS.map((spot) => {
-                      const isSelected = activeHotspotId === spot.id;
-                      return (
-                        <button
-                          key={spot.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectHotspot(spot);
-                          }}
-                          style={{
-                            left: `${spot.xPercent}%`,
-                            top: `${spot.yPercent}%`,
-                          }}
-                          className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer z-30 group"
-                          title={spot.name}
-                        >
-                          <div className={`relative flex items-center justify-center ${isSelected ? 'scale-125' : 'scale-90 hover:scale-110'} transition-transform duration-200`}>
-                            {/* Ping Wave */}
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                            {/* Inner Dot */}
-                            <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 shadow-lg transition-colors ${
-                              isSelected 
-                                ? 'bg-amber-400 border-white text-slate-950 font-black' 
-                                : 'bg-slate-900/90 border-amber-400 text-amber-300'
-                            }`}>
-                              <span className="w-2 h-2 rounded-full bg-current" />
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
                 )}
               </motion.div>
             </div>
 
-            {/* Macro View Active Detail Card */}
-            {isMacroMode && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="mt-3 w-full bg-slate-900 text-white p-3.5 rounded-2xl border border-amber-400/40 shadow-xl"
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                    <h4 className="text-xs font-black text-amber-300">{activeHotspot.name}</h4>
-                  </div>
-                  <span className="text-[10px] font-bold bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/30">
-                    {activeHotspot.tag}
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-300 leading-relaxed font-medium">
-                  {activeHotspot.description}
-                </p>
-
-                {/* Macro Zoom Level Controls */}
-                <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-800">
-                  <span className="text-[10px] text-slate-400 font-bold">مستوى التقريب البصري:</span>
-                  <div className="flex items-center gap-1.5">
-                    {[2.0, 2.7, 3.4].map((z) => (
-                      <button
-                        key={z}
-                        onClick={() => setMacroZoom(z)}
-                        className={`text-[10px] font-black px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                          macroZoom === z 
-                            ? 'bg-amber-400 text-slate-950 shadow-xs' 
-                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                        }`}
-                      >
-                        {z}X
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
             {/* Selected Additions Badges: Visible under the plate without covering the dish image! */}
-            {canAcceptToppings && selectedToppings.length > 0 && !isMacroMode && (
+            {canAcceptToppings && selectedToppings.length > 0 && (
               <motion.div 
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}

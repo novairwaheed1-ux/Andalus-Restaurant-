@@ -195,48 +195,38 @@ export default function LoginModal({
             transition={{ duration: 0.28, ease: 'easeOut' }}
             className="relative w-full max-w-md bg-white rounded-t-[36px] sm:rounded-[36px] shadow-2xl overflow-hidden z-10 border border-slate-100 max-h-[92vh] flex flex-col"
           >
-            {/* Header with Luxury Dark Brand Aesthetic */}
-            <div className="relative bg-[#0D1E3A] text-white pt-6 pb-5 px-6">
+            {/* Header with Iconic Curved Silhouette (Inspired by Image 2) */}
+            <div className="relative bg-[#0A0F1D] text-white pt-7 pb-8 px-6 overflow-hidden">
+              {/* Subtle Ambient Glow */}
+              <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+
               <button
                 onClick={onClose}
-                className="absolute top-4 left-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+                className="absolute top-4 left-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer z-20"
                 title="إغلاق"
               >
                 <X className="w-4 h-4" />
               </button>
 
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-400 font-black text-xl shrink-0 shadow-inner overflow-hidden">
-                  {currentUser?.isLoggedIn ? (
-                    currentUser.avatar ? (
-                      <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover rounded-2xl" />
-                    ) : (
-                      currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'G'
-                    )
-                  ) : (
-                    <User className="w-6 h-6 text-amber-400" />
-                  )}
-                </div>
+              <div className="relative z-10 text-right">
+                <span className="text-[10px] font-mono tracking-widest text-amber-400 font-bold uppercase">AL ANDALUS</span>
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-0.5">
+                  مطعم الأندلس
+                </h2>
+                <p className="text-xs text-slate-400 mt-1 font-medium">
+                  {currentUser?.isLoggedIn ? `مرحباً بك مجدداً، ${currentUser.name}` : 'مرحباً بك! سجل دخولك للمتابعة.'}
+                </p>
+              </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base sm:text-lg font-black text-white truncate">
-                      {currentUser?.isLoggedIn ? currentUser.name : 'تسجيل الدخول • حساب العميل'}
-                    </h2>
-                    {currentUser?.isLoggedIn ? (
-                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-400/30 shrink-0">
-                        Google موثق
-                      </span>
-                    ) : (
-                      <span className="text-[10px] bg-amber-400/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/30 shrink-0">
-                        Google متاح دائماً
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-300 truncate mt-0.5">
-                    {currentUser?.isLoggedIn ? currentUser.email : 'تسجيل دخول فوري متوافق على GitHub وجميع المتصفحات'}
-                  </p>
-                </div>
+              {/* Bottom Organic Wave Curve */}
+              <div className="absolute -bottom-[1px] left-0 right-0 w-full overflow-hidden leading-none pointer-events-none z-10">
+                <svg 
+                  viewBox="0 0 400 40" 
+                  preserveAspectRatio="none" 
+                  className="relative block w-full h-[20px] fill-white"
+                >
+                  <path d="M0,0 C120,38 280,38 400,10 L400,40 L0,40 Z" />
+                </svg>
               </div>
             </div>
 
@@ -258,17 +248,12 @@ export default function LoginModal({
 
               {/* Guest Status & Google Login Section */}
               {!currentUser?.isLoggedIn && (
-                <div className="bg-slate-50 border border-slate-200 rounded-3xl p-4 space-y-3.5">
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-amber-400/20 text-amber-800 flex items-center justify-center shrink-0 mt-0.5 border border-amber-300/40">
-                      <Sparkles className="w-4.5 h-4.5 text-amber-600" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-slate-900">سجل دخولك عبر Google لحفظ طلباتك فوراً</h4>
-                      <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5 font-medium">
-                        يعمل تسجيل الدخول الآن في أي بيئة (على GitHub Pages، محرر الأكواد، أو أي متصفح) دون أي توقف.
-                      </p>
-                    </div>
+                <div className="space-y-3.5">
+                  <div className="text-right">
+                    <h3 className="text-base font-black text-slate-900">تسجيل الدخول</h3>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">
+                      سجل دخولك لحفظ وتتبع جميع طلباتك بسهولة
+                    </p>
                   </div>
 
                   {/* Primary Google Login Button */}
@@ -276,7 +261,7 @@ export default function LoginModal({
                     type="button"
                     onClick={handleGoogleSignIn}
                     disabled={isLoading}
-                    className="w-full py-3 px-4 rounded-2xl border border-slate-300 hover:border-slate-800 bg-white hover:bg-slate-50 text-slate-900 font-black text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-60 active:scale-[0.98]"
+                    className="w-full py-3.5 px-4 rounded-2xl border border-slate-200 hover:border-slate-800 bg-white hover:bg-slate-50 text-slate-900 font-black text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-60 active:scale-[0.98]"
                   >
                     {isLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin text-slate-700" />
@@ -288,40 +273,36 @@ export default function LoginModal({
                           <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.5s.7 4.8 1.9 7.2l3.7-2.9z"/>
                           <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.9C3.7 20.6 7.5 23.5 12 23.5z"/>
                         </svg>
-                        <span>تسجيل الدخول السريع عبر Google</span>
+                        <span>تسجيل الدخول عبر حساب Google</span>
                       </>
                     )}
                   </button>
 
-                  {/* Toggle Universal 1-Click Google Account Options */}
+                  {/* Toggle 1-Click Fast Account Options */}
                   <div className="pt-1">
                     <button
                       type="button"
                       onClick={() => setShowGooglePicker(!showGooglePicker)}
-                      className="w-full text-center text-[11px] font-bold text-amber-700 hover:text-amber-800 flex items-center justify-center gap-1.5 py-1 cursor-pointer transition-colors"
+                      className="w-full text-center text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center justify-center gap-1.5 py-1 cursor-pointer transition-colors"
                     >
-                      <span>{showGooglePicker ? 'إخفاء خيارات حسابات Google' : 'اختيار حساب Google فوري (مضمون 100% على GitHub ومحررات الأكواد)'}</span>
+                      <span>{showGooglePicker ? 'إخفاء خيارات الحساب' : 'اختيار حساب سريع مباشر'}</span>
                       {showGooglePicker ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                     </button>
                   </div>
 
-                  {/* Universal Google Account Picker (100% Guaranteed On Any Domain/IDE) */}
+                  {/* 1-Click Account Picker */}
                   <AnimatePresence>
                     {showGooglePicker && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="space-y-3 pt-2 border-t border-slate-200"
+                        className="space-y-3 pt-2 border-t border-slate-100"
                       >
-                        <div className="text-[11px] font-bold text-slate-600 mb-1">
-                          اختر حساب Google لتسجيل الدخول فوراً:
-                        </div>
-
                         {/* Quick Account 1: novairwaheed1@gmail.com */}
                         <div 
                           onClick={() => handleQuickGoogleAccount('novairwaheed1@gmail.com', 'نوفير وحيد')}
-                          className="p-3 bg-white hover:bg-amber-50/60 border border-slate-200 hover:border-amber-400 rounded-2xl cursor-pointer flex items-center justify-between transition-all active:scale-[0.99] shadow-xs group"
+                          className="p-3 bg-slate-50 hover:bg-amber-50/60 border border-slate-200 hover:border-amber-400 rounded-2xl cursor-pointer flex items-center justify-between transition-all active:scale-[0.99] shadow-xs group"
                         >
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center font-black text-sm border border-amber-300/40 shrink-0">
@@ -342,61 +323,39 @@ export default function LoginModal({
                         </div>
 
                         {/* Quick Custom Google / Gmail Input */}
-                        <form onSubmit={handleCustomGoogleSubmit} className="bg-white p-3 border border-slate-200 rounded-2xl space-y-2">
-                          <div className="text-[11px] font-black text-slate-800">
-                            أو استخدم حساب Google / Gmail آخر:
+                        <form onSubmit={handleCustomGoogleSubmit} className="bg-slate-50 p-3.5 border border-slate-200 rounded-2xl space-y-2.5">
+                          <div className="text-xs font-black text-slate-800">
+                            أو ادخل بريدك الإلكتروني مباشرة:
                           </div>
                           
                           <input
                             type="email"
-                            placeholder="بريدك في Google (مثال: myaccount@gmail.com)"
+                            placeholder="البريد الإلكتروني (name@gmail.com)"
                             value={customEmail}
                             onChange={(e) => setCustomEmail(e.target.value)}
-                            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-[#0D1E3A] focus:outline-none bg-slate-50 text-slate-900"
+                            className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:border-[#0D1E3A] focus:outline-none bg-white text-slate-900"
                             dir="ltr"
                           />
 
                           <input
                             type="text"
-                            placeholder="الاسم المستعار في Google (اختياري)"
+                            placeholder="الاسم (اختياري)"
                             value={customName}
                             onChange={(e) => setCustomName(e.target.value)}
-                            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-[#0D1E3A] focus:outline-none bg-slate-50 text-slate-900"
+                            className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:border-[#0D1E3A] focus:outline-none bg-white text-slate-900"
                           />
 
                           <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full py-2.5 px-3 rounded-xl bg-[#0D1E3A] hover:bg-[#1A3258] text-white font-black text-xs transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+                            className="w-full py-3 px-3 rounded-xl bg-[#0D1E3A] hover:bg-[#1A3258] text-white font-black text-xs transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
                           >
-                            <span>تسجيل الدخول بهذا الحساب</span>
+                            <span>تسجيل الدخول</span>
                           </button>
                         </form>
                       </motion.div>
                     )}
                   </AnimatePresence>
-
-                  {/* Discreet Domain Notice & Firebase Authorized Domain Guide */}
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setShowDevTip(!showDevTip)}
-                      className="text-[10px] text-slate-400 hover:text-slate-600 flex items-center gap-1 font-medium cursor-pointer"
-                    >
-                      <Globe className="w-3 h-3" />
-                      <span>النطاق الحالي: {currentHostname} {showDevTip ? '(إخفاء)' : '(تفاصيل الربط)'}</span>
-                    </button>
-
-                    {showDevTip && (
-                      <div className="mt-1.5 p-2.5 rounded-xl bg-slate-100 border border-slate-200 text-[10px] text-slate-600 leading-relaxed font-medium">
-                        لجعل نافذة Firebase المنبثقة تعمل على رابط GitHub بدون أي قيود أمنية، يمكنك إضافة النطاق 
-                        <code className="mx-1 px-1 bg-white text-slate-900 rounded font-bold">{currentHostname}</code>
-                        في لوحة تحكم:
-                        <div className="font-bold text-slate-800 mt-1">Firebase Console &gt; Authentication &gt; Settings &gt; Authorized Domains</div>
-                        مع العلم أن وضع التوافق السريع أعلاه يتيح تسجيل الدخول فوراً بدون أي تأخير!
-                      </div>
-                    )}
-                  </div>
                 </div>
               )}
 

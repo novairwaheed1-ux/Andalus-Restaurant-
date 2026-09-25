@@ -175,23 +175,21 @@ export default function App() {
   const cartItemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-[#F4F6F9] text-slate-900 flex flex-col items-center selection:bg-[#0D1E3A] selection:text-white relative overflow-x-hidden font-sans" dir="rtl">
+    <div className="min-h-screen bg-white text-slate-900 flex flex-col items-center selection:bg-[#0D1E3A] selection:text-white relative overflow-x-hidden font-sans" dir="rtl">
       
-      {/* Top Header Section - Deep Navy Blue with smooth organic curved bottom */}
-      <header className="w-full bg-[#0D1E3A] text-white pt-6 pb-7 px-4 sm:px-6 rounded-b-[42px] shadow-xl shadow-slate-950/20 relative z-10">
-        <div className="w-full max-w-[460px] md:max-w-2xl lg:max-w-4xl mx-auto">
-          {/* Delivery Location & Direct Call Bar */}
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-amber-400 shadow-xs">
-                <MapPin className="w-5 h-5" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[11px] text-slate-300 font-bold uppercase tracking-wider leading-tight">التوصيل إلى</span>
-                <div className="flex items-center gap-1 font-black text-sm text-white mt-0.5">
-                  <span>ديروط - أول منزل أبو جبل</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-300" />
-                </div>
+      {/* Top Header Section - Asymmetrical Organic Curved Canopy (Inspired by modern Flutter/iOS designs) */}
+      <header className="w-full bg-[#0D1E3A] text-white pt-5 pb-9 px-4 sm:px-6 relative z-10 overflow-hidden">
+        {/* Subtle Ambient Light Glow */}
+        <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="w-full max-w-[460px] md:max-w-2xl lg:max-w-4xl mx-auto relative z-20">
+          {/* Delivery Location & Direct Actions Bar */}
+          <div className="flex items-center justify-between gap-2.5 mb-4">
+            <div className="flex items-center gap-2 bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-full border border-white/15 backdrop-blur-xs transition-colors shadow-xs">
+              <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
+              <div className="flex flex-col text-right">
+                <span className="text-[10px] text-slate-300 font-bold uppercase leading-none">التوصيل إلى</span>
+                <span className="text-xs font-black text-white mt-0.5 leading-tight">ديروط - أول منزل أبو جبل</span>
               </div>
             </div>
 
@@ -202,16 +200,16 @@ export default function App() {
                   setOrderModalStep('tracking');
                   setIsOrderModalOpen(true);
                 }}
-                className={`h-10 px-3 rounded-full border flex items-center gap-1.5 transition-all active:scale-95 shadow-xs cursor-pointer ${
+                className={`h-9 px-3 rounded-full border flex items-center gap-1.5 transition-all active:scale-95 shadow-xs cursor-pointer ${
                   hasActiveOrder 
                     ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300 hover:bg-emerald-500/30' 
-                    : 'bg-white/10 hover:bg-white/20 border-white/20 text-white'
+                    : 'bg-white/10 hover:bg-white/20 border-white/15 text-white'
                 }`}
                 title="تأكيد واستلام الأوردر"
               >
                 <ClipboardCheck className={`w-4 h-4 ${hasActiveOrder ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`} />
                 <span className="text-xs font-black hidden sm:inline">
-                  {hasActiveOrder ? 'تتبع واستلام الأوردر' : 'استلام الأوردر'}
+                  {hasActiveOrder ? 'تتبع الطلب' : 'استلام الأوردر'}
                 </span>
                 {hasActiveOrder && (
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
@@ -220,8 +218,8 @@ export default function App() {
 
               <a 
                 href="tel:01008141062" 
-                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white transition-colors active:scale-95 shadow-xs"
-                title="اتصال مباشر: 01008141062"
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white transition-colors active:scale-95 shadow-xs"
+                title="اتصال: 01008141062"
               >
                 <Phone className="w-4 h-4" />
               </a>
@@ -229,7 +227,7 @@ export default function App() {
               {/* User Avatar / Login Button */}
               <button 
                 onClick={() => setIsLoginOpen(true)}
-                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center overflow-hidden active:scale-95 transition-transform shadow-xs cursor-pointer"
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center overflow-hidden active:scale-95 transition-transform shadow-xs cursor-pointer"
                 title={currentUser?.isLoggedIn ? `مرحباً ${currentUser.name}` : "تسجيل الدخول"}
               >
                 {currentUser?.isLoggedIn ? (
@@ -241,7 +239,7 @@ export default function App() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-[#1A3258] text-white flex items-center justify-center font-black text-sm shadow-inner">
+                    <div className="w-full h-full bg-[#1A3258] text-white flex items-center justify-center font-black text-xs">
                       {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
                     </div>
                   )
@@ -252,12 +250,17 @@ export default function App() {
             </div>
           </div>
 
-          {/* Headline */}
-          <h1 className="text-[25px] sm:text-[29px] font-black text-white tracking-tight leading-snug mb-4">
-            جعان يا صحبي؟ <span className="text-amber-400">اطلب واستمتع</span>
-          </h1>
+          {/* Minimalist Brand Header (Clean typography inspired by Image 2, No Tacky Slogans) */}
+          <div className="mb-4 mt-2">
+            <h1 className="text-2xl sm:text-[28px] font-black text-white tracking-tight leading-tight">
+              مطعم الأندلس
+            </h1>
+            <p className="text-xs text-slate-300 font-medium mt-0.5">
+              أشهى المأكولات الطازجة • ديروط
+            </p>
+          </div>
 
-          {/* Category Circles */}
+          {/* Category Circles with high contrast active states */}
           <div className="flex gap-3 sm:gap-3.5 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 sm:-mx-6 sm:px-6">
             {CATEGORIES.map((cat) => {
               const isActive = activeCategory === cat.id;
@@ -268,27 +271,27 @@ export default function App() {
                   onClick={() => setActiveCategory(cat.id)}
                   className="flex flex-col items-center gap-1.5 shrink-0 group active:scale-95 transition-transform cursor-pointer"
                 >
-                  <div className={`w-[62px] h-[62px] rounded-full flex items-center justify-center transition-all ${
+                  <div className={`w-[60px] h-[60px] rounded-full flex items-center justify-center transition-all ${
                     isActive 
-                      ? 'bg-white text-[#0D1E3A] shadow-xl shadow-slate-950/25 scale-105 ring-4 ring-white/30' 
-                      : 'bg-white/90 text-slate-800 shadow-md hover:shadow-lg hover:bg-white border border-white/40'
+                      ? 'bg-white text-[#0D1E3A] shadow-xl shadow-slate-950/30 scale-105 ring-4 ring-amber-400/40' 
+                      : 'bg-white/90 text-slate-800 shadow-md hover:bg-white border border-white/30'
                   }`}>
                     {cat.icon === 'grid' ? (
-                      <Grid className={`w-6 h-6 ${isActive ? 'text-[#0D1E3A]' : 'text-slate-800'}`} />
+                      <Grid className={`w-5 h-5 ${isActive ? 'text-[#0D1E3A]' : 'text-slate-800'}`} />
                     ) : (
-                      <div className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
                         <img 
                           referrerPolicy="no-referrer" 
                           src={catIcon} 
                           alt={cat.name} 
                           loading="eager"
-                          className="w-full h-full object-cover p-1" 
+                          className="w-full h-full object-cover p-0.5" 
                         />
                       </div>
                     )}
                   </div>
                   <span className={`text-[12px] whitespace-nowrap transition-colors mt-0.5 ${
-                    isActive ? 'text-white font-black drop-shadow-xs' : 'text-slate-300 font-bold'
+                    isActive ? 'text-amber-300 font-black drop-shadow-xs' : 'text-slate-300 font-bold'
                   }`}>
                     {cat.name}
                   </span>
@@ -297,17 +300,25 @@ export default function App() {
             })}
           </div>
         </div>
+
+        {/* Asymmetrical Organic Fluid Wave SVG at the Bottom (Replicating Image 2's silhouette) */}
+        <div className="absolute -bottom-[1px] left-0 right-0 w-full overflow-hidden leading-none pointer-events-none z-10">
+          <svg 
+            viewBox="0 0 1200 80" 
+            preserveAspectRatio="none" 
+            className="relative block w-full h-[24px] sm:h-[32px] fill-white"
+          >
+            <path d="M0,0 C220,68 540,84 850,55 C1020,38 1120,15 1200,45 L1200,80 L0,80 Z" />
+          </svg>
+        </div>
       </header>
 
       {/* Main Food Section - Cleanly positioned on light background with generous spacing */}
-      <main className="w-full max-w-[460px] md:max-w-2xl lg:max-w-4xl px-4 sm:px-6 pt-6 pb-32 relative z-10 flex-grow">
+      <main className="w-full max-w-[460px] md:max-w-2xl lg:max-w-4xl px-4 sm:px-6 pt-5 pb-32 relative z-10 flex-grow">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2 tracking-tight">
-            <span>الأكثر طلباً</span>
+          <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+            الأصناف المتاحة
           </h2>
-          <span className="text-xs font-black text-[#0D1E3A] bg-blue-50/80 border border-blue-200/80 px-3.5 py-1.5 rounded-full shadow-xs">
-            {filteredItems.length} صنف جاهز للطلب
-          </span>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4.5">

@@ -89,13 +89,13 @@ export const TOPPINGS: Topping[] = [
   },
   {
     id: "mixcheese",
-    name: "مكس أجبان فاخر",
+    name: "مكس أجبان مشكل",
     price: 25,
     icon: "/items/it-mixcheese.webp"
   },
   {
     id: "sauce_ranch",
-    name: "صوص رانش فاخر",
+    name: "صوص رانش مميز",
     price: 15,
     icon: "/items/it-ranch.webp"
   }
@@ -2104,7 +2104,7 @@ export const MENU_ITEMS: MenuItem[] = [
     "id": "pie-sav-meshaltet",
     "name": "فطير مشلتت فلاحي",
     "category": "pie-sav",
-    "description": "فطير مشلتت فلاحي مورق بالسمن البلدي الفاخر",
+    "description": "فطير مشلتت فلاحي مورق بالسمن البلدي الأصلي",
     "image": "/items/pie-mix-cheese.webp",
     "rating": 5,
     "calories": 600,

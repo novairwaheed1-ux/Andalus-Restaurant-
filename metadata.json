@@ -1,6 +1,6 @@
 {
   "name": "مطعم الأندلس - Al-Andalous",
-  "description": "قائمة طعام تفاعلية ثلاثية الأبعاد وتجربة طلب فاخرة لمطعم الأندلس بديروط",
+  "description": "قائمة طعام تفاعلية وتجربة طلب سريعة ومميزة لمطعم الأندلس بديروط",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

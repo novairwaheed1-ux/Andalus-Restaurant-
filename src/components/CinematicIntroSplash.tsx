@@ -133,7 +133,7 @@ export default function CinematicIntroSplash({ onComplete }: CinematicIntroSplas
             className="mt-6 flex items-center gap-2 text-slate-300 text-xs sm:text-sm font-medium tracking-widest uppercase"
           >
             <Utensils className="w-3.5 h-3.5 text-amber-400" />
-            <span>أشهى المأكولات الفاخرة • ديروط</span>
+            <span>أشهى المأكولات الطازجة • ديروط</span>
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
           </motion.div>
 
